@@ -133,9 +133,6 @@ function UI() {
 				.style("stroke", "#000")
 				.style("stroke-width", "1")
 				.on("click", function (event, d) {
-					setSelectedState((d as any).properties.name);
-				})
-				.on("contextmenu", function (event, d) {
 					event.preventDefault(); // Prevent default right-click menu
 
 					const feature = d as unknown as Feature<Geometry>;
@@ -162,14 +159,17 @@ function UI() {
 					console.log(x0, y0, x1, y1);
 					setIsZoomed(true);
 				})
-				.on("mousedown", function (event) {
+				.on("contextmenu", function (event) {
+					event.preventDefault();
+					if (isZoomed) {
+						svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
+						setIsZoomed(false);
+					}
+				})
+				.on("mousedown", function (event, d) {
 					// Middle click (button 1)
 					if (event.button === 1) {
-						event.preventDefault();
-						if (isZoomed) {
-							svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
-							setIsZoomed(false);
-						}
+						setSelectedState((d as any).properties.name);
 					}
 				});
 
