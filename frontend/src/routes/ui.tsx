@@ -16,7 +16,6 @@ import {
 import { Feature, Geometry } from "geojson";
 import { useEffect, useRef } from "react";
 
-import Navbar from "../components/Common/Navbar";
 import React from "react";
 import Sidebar from "../components/Common/Sidebar";
 import { createFileRoute } from "@tanstack/react-router";
@@ -43,6 +42,7 @@ function UI() {
 
 	const [chartType, setChartType] = React.useState<"filled" | "bar" | "bubble">("filled");
 	const [selectedState, setSelectedState] = React.useState<string | null>(null);
+	const [isZoomed, setIsZoomed] = React.useState(false);
 
 	useEffect(() => {
 		if (!svgRef.current || !legendRef.current) return;
@@ -104,6 +104,15 @@ function UI() {
 		d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json").then((us: any) => {
 			const states = feature(us, us.objects.states);
 
+			const zoom = d3
+				.zoom()
+				.scaleExtent([1, 8])
+				.on("zoom", (event) => {
+					const { transform } = event;
+					svg.attr("transform", transform);
+					svg.attr("stroke-width", 1 / transform.k);
+				});
+
 			// Draw states
 			svg
 				.selectAll("path")
@@ -126,6 +135,35 @@ function UI() {
 				.style("stroke-width", "1")
 				.on("click", function (event, d) {
 					setSelectedState((d as any).properties.name);
+				})
+				.on("contextmenu", function (event, d) {
+					event.preventDefault(); // Prevent default right-click menu
+
+					const feature = d as unknown as Feature<Geometry>;
+					const [[x0, y0], [x1, y1]] = path.bounds(feature);
+					const dx = x1 - x0;
+					const dy = y1 - y0;
+					// const scale = Math.min(8, 0.9 / Math.max(dx / width, dy / height));
+					const scale = 1.5;
+					const translateX = width / 2 - ((x0 + x1) / 2) * scale;
+					const translateY = height / 2 - ((y0 + y1) / 2) * scale;
+
+					svg
+						.transition()
+						.duration(750)
+						.call(zoom.transform, d3.zoomIdentity.scale(scale).translate(translateX, translateY));
+					setIsZoomed(true);
+				})
+				.on("mousedown", function (event) {
+					// Middle click (button 1)
+					if (event.button === 1) {
+						event.preventDefault();
+						if (isZoomed) {
+							// Zoom out
+							svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
+							setIsZoomed(false);
+						}
+					}
 				})
 				.on("mouseout", function (event, d) {
 					const feature = d as unknown as Feature<Geometry>;
@@ -202,7 +240,7 @@ function UI() {
 					});
 			}
 		});
-	}, [chartType]);
+	}, [chartType, isZoomed]);
 
 	return (
 		<Flex direction={{ base: "column", md: "row" }} w="100vw" h="100vh" overflow="hidden">

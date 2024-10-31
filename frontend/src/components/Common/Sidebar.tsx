@@ -1,74 +1,28 @@
-import {
-	Box,
-	Drawer,
-	DrawerBody,
-	DrawerCloseButton,
-	DrawerContent,
-	DrawerOverlay,
-	Flex,
-	IconButton,
-	Image,
-	Text,
-	useColorModeValue,
-	useDisclosure,
-} from "@chakra-ui/react";
-import { FiLogOut, FiMenu } from "react-icons/fi";
+import { Box, Flex, Image, useColorModeValue } from "@chakra-ui/react";
 
-import Logo from "/assets/images/fastapi-logo.svg";
+import Logo from "/assets/images/reddit-university.png";
 import SidebarItems from "./SidebarItems";
 
 const Sidebar = () => {
 	const bgColor = useColorModeValue("ui.light", "ui.dark");
 	const secBgColor = useColorModeValue("ui.secondary", "ui.darkSlate");
-	const { isOpen, onOpen, onClose } = useDisclosure();
 
 	return (
-		<>
-			<IconButton
-				onClick={onOpen}
-				display={{ base: "flex", md: "none" }}
-				aria-label="Open Menu"
-				position="absolute"
-				fontSize="20px"
-				m={4}
-				icon={<FiMenu />}
-			/>
-			<Drawer isOpen={isOpen} placement="left" onClose={onClose}>
-				<DrawerOverlay />
-				<DrawerContent maxW="250px">
-					<DrawerCloseButton />
-					<DrawerBody py={8}>
-						<Flex flexDir="column" justify="space-between">
-							<Box>
-								<Image src={Logo} alt="logo" p={6} />
-								<SidebarItems onClose={onClose} />
-								<Flex as="button" p={2} color="ui.danger" fontWeight="bold" alignItems="center">
-									<FiLogOut />
-									<Text ml={2}>Log out</Text>
-								</Flex>
-							</Box>
-						</Flex>
-					</DrawerBody>
-				</DrawerContent>
-			</Drawer>
-
-			{/* Desktop */}
-			<Box
-				bg={bgColor}
-				p={3}
-				h="100vh"
-				position="sticky"
-				top="0"
-				display={{ base: "none", md: "flex" }}
-			>
-				<Flex flexDir="column" justify="space-between" bg={secBgColor} p={4} borderRadius={12}>
-					<Box>
-						<Image src={Logo} alt="Logo" w="180px" maxW="2xs" p={6} />
-						<SidebarItems />
-					</Box>
-				</Flex>
-			</Box>
-		</>
+		<Box
+			bg={bgColor}
+			p={3}
+			h="100vh"
+			position="sticky"
+			top="0"
+			display={{ base: "none", md: "flex" }}
+		>
+			<Flex flexDir="column" justify="space-between" bg={secBgColor} p={4} borderRadius={12}>
+				<Box p={0} m={0}>
+					<Image src={Logo} alt="Logo" w="210px" maxW="2xs" />
+					<SidebarItems />
+				</Box>
+			</Flex>
+		</Box>
 	);
 };
 
