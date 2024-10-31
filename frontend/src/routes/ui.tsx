@@ -16,7 +16,9 @@ import {
 import { Feature, Geometry } from "geojson";
 import { useEffect, useRef } from "react";
 
+import Navbar from "../components/Common/Navbar";
 import React from "react";
+import Sidebar from "../components/Common/Sidebar";
 import { createFileRoute } from "@tanstack/react-router";
 import { feature } from "topojson-client";
 
@@ -153,7 +155,7 @@ function UI() {
 						return path.centroid(d)[0] - 20;
 					})
 					.attr("y", function (d) {
-						const feature = d as unknown as Feature<Geometry>
+						const feature = d as unknown as Feature<Geometry>;
 						const stateId = (feature.properties as any).name;
 						const stateStressLevel = stressLevel[stateId] || 0;
 						return path.centroid(d)[1] - stateStressLevel * 10;
@@ -203,15 +205,23 @@ function UI() {
 	}, [chartType]);
 
 	return (
-		<Flex align="center" justify="center" w="100vw" h="100vh">
+		<Flex direction={{ base: "column", md: "row" }} w="100vw" h="100vh" overflow="hidden">
 			<Box
-				position="relative"
-				width={width}
-				height={height}
+				w={{ base: "100%", md: "250px" }}
+				h={{ base: "auto", md: "100vh" }}
+				bg="white"
+				borderRadius="md"
+				overflow="hidden"
+			>
+				<Sidebar />
+			</Box>
+			<Box
+				flex="1"
+				h={{ base: "calc(100vh - 250px)", md: "100vh" }}
 				p={4}
 				bg="white"
 				borderRadius="md"
-				boxShadow="md"
+				position="relative"
 			>
 				<Select
 					position="absolute"
