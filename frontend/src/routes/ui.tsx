@@ -9,6 +9,7 @@ import {
 	ModalContent,
 	ModalHeader,
 	ModalOverlay,
+	Select,
 	Text,
 	VStack,
 } from "@chakra-ui/react";
@@ -38,8 +39,7 @@ function UI() {
 		"New York": 2.8,
 	};
 
-	const [chartType, setChartType] = React.useState<"filled" | "bar">("filled");
-
+	const [chartType, setChartType] = React.useState<"filled" | "bar" | "bubble">("filled");
 	const [selectedState, setSelectedState] = React.useState<string | null>(null);
 
 	useEffect(() => {
@@ -61,7 +61,7 @@ function UI() {
 		const path = d3.geoPath().projection(projection);
 
 		// Color scale
-		const colorScale = d3.scaleSequential(d3.interpolateBlues).domain([0, 10]); // Adjust domain based on your data
+		const colorScale = d3.scaleSequential(d3.interpolateReds).domain([0, 10]);
 
 		// Legend
 		const legendScale = d3
@@ -70,7 +70,7 @@ function UI() {
 			.range([0, 180])
 			.interpolate(d3.interpolateRound);
 
-		const legendGradient = legend
+		legend
 			.append("svg")
 			.attr("width", 200)
 			.attr("height", 30)
@@ -82,14 +82,6 @@ function UI() {
 			.attr("x2", "100%")
 			.attr("y2", "0%");
 
-		legendGradient
-			.selectAll("stop")
-			.data(legendScale.ticks(10))
-			.enter()
-			.append("stop")
-			.attr("offset", (d) => `${legendScale(d)}%`)
-			.attr("stop-color", colorScale as any);
-
 		legend
 			.append("rect")
 			.attr("x", 0)
@@ -98,17 +90,13 @@ function UI() {
 			.attr("height", 20)
 			.style("fill", "url(#legend-gradient)");
 
-		legend
-			.append("text")
-			.attr("x", 5)
-			.attr("y", 8)
-			.text("Stress Level (0-10)")
-			.style("font-size", "12px")
-			.style("font-weight", "bold");
+		const legendAxis = d3
+			.axisRight(legendScale)
+			.tickValues(legendScale.ticks(2))
+			.tickSize(-20)
+			.tickPadding(8);
 
-		legend.append("text").attr("x", 0).attr("y", 40).text("0").style("font-size", "10px");
-
-		legend.append("text").attr("x", 180).attr("y", 40).text("10").style("font-size", "10px");
+		legend.append("g").attr("transform", "translate(200,0)").call(legendAxis);
 
 		// Load US map data
 		d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json").then((us: any) => {
@@ -165,7 +153,7 @@ function UI() {
 						return path.centroid(d)[0] - 20;
 					})
 					.attr("y", function (d) {
-						const feature = d as unknown as Feature<Geometry>;
+						const feature = d as unknown as Feature<Geometry>
 						const stateId = (feature.properties as any).name;
 						const stateStressLevel = stressLevel[stateId] || 0;
 						return path.centroid(d)[1] - stateStressLevel * 10;
@@ -177,13 +165,39 @@ function UI() {
 						const stateStressLevel = stressLevel[stateId] || 0;
 						return stateStressLevel * 10;
 					})
-					.style("fill", "steelblue")
-					.append("rect")
-					.attr("x", 0)
-					.attr("y", 0)
-					.attr("width", 2)
-					.attr("height", "100%")
-					.style("fill", "black");
+					.style("fill", function (d) {
+						const feature = d as unknown as Feature<Geometry>;
+						const stateId = (feature.properties as any).name;
+						const stateStressLevel = stressLevel[stateId] || 0;
+						return colorScale(stateStressLevel);
+					});
+			}
+
+			// Add bubble chart
+			if (chartType === "bubble") {
+				svg
+					.selectAll("circle")
+					.data((states as any).features)
+					.enter()
+					.append("circle")
+					.attr("cx", function (d) {
+						return path.centroid(d)[0];
+					})
+					.attr("cy", function (d) {
+						return path.centroid(d)[1];
+					})
+					.attr("r", function (d) {
+						const feature = d as unknown as Feature<Geometry>;
+						const stateId = (feature.properties as any).name;
+						const stateStressLevel = stressLevel[stateId] || 0;
+						return stateStressLevel * 5; // Adjust the multiplier as needed
+					})
+					.style("fill", function (d) {
+						const feature = d as unknown as Feature<Geometry>;
+						const stateId = (feature.properties as any).name;
+						const stateStressLevel = stressLevel[stateId] || 0;
+						return colorScale(stateStressLevel);
+					});
 			}
 		});
 	}, [chartType]);
@@ -199,6 +213,19 @@ function UI() {
 				borderRadius="md"
 				boxShadow="md"
 			>
+				<Select
+					position="absolute"
+					top="1rem"
+					left="1rem"
+					size="sm"
+					width="fit-content"
+					value={chartType}
+					onChange={(e) => setChartType(e.target.value as "filled" | "bar" | "bubble")}
+				>
+					<option value="filled">Filled Color</option>
+					<option value="bar">Bar Chart</option>
+					<option value="bubble">Bubble Chart</option>
+				</Select>
 				<svg ref={svgRef} style={{ width: "100%", height: "100%" }}></svg>
 				<VStack
 					position="absolute"
@@ -214,11 +241,8 @@ function UI() {
 						ref={legendRef}
 						height="100px"
 						width="20px"
-						bgGradient="linear(to-b, #f5f5f5, steelblue)"
+						bgGradient="linear(to-b, #f5f5f5, red)"
 					/>
-					{/* <Button onClick={() => setChartType(chartType === "filled" ? "bar" : "filled")}>
-						{chartType === "filled" ? "Bar Chart" : "Filled Color"}
-					</Button> */}
 					<Modal isOpen={!!selectedState} onClose={() => setSelectedState(null)}>
 						<ModalOverlay />
 						<ModalContent>
