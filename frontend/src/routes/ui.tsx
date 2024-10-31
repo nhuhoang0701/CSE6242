@@ -3,6 +3,7 @@ import * as d3 from "d3";
 import {
 	Box,
 	Flex,
+	HStack,
 	Modal,
 	ModalBody,
 	ModalCloseButton,
@@ -10,10 +11,16 @@ import {
 	ModalHeader,
 	ModalOverlay,
 	Select,
+	Tab,
+	TabList,
+	TabPanel,
+	TabPanels,
+	Tabs,
 	Text,
 	VStack,
 } from "@chakra-ui/react";
 import { Feature, Geometry } from "geojson";
+import Word3DCloud, { Word3DCloudProps } from "../components/WordCloud";
 import { useEffect, useRef } from "react";
 
 import React from "react";
@@ -21,8 +28,26 @@ import Sidebar from "../components/Common/Sidebar";
 import { createFileRoute } from "@tanstack/react-router";
 import { feature } from "topojson-client";
 
+type Sentiment = "positive" | "neutral" | "negative";
 interface StateData {
-	[key: string]: number;
+	[key: string]: {
+		stress: Sentiment;
+		sport: Sentiment;
+		wordsByTopic: { [key in "stress" | "sport"]: Word3DCloudProps };
+	};
+}
+
+function sentimentToColor(sentiment: Sentiment | null) {
+	switch (sentiment) {
+		case "positive":
+			return "green";
+		case "negative":
+			return "red";
+		case "neutral":
+			return "gray";
+		case null:
+			return "gray";
+	}
 }
 
 export const Route = createFileRoute("/ui")({
@@ -34,13 +59,52 @@ function UI() {
 	const legendRef = useRef<HTMLDivElement | null>(null);
 	const width = 960;
 	const height = 600;
-	const stressLevel: StateData = {
-		Arizona: 4.5,
-		Georgia: 3.9,
-		"New York": 2.8,
+	const sentimentLevel = {
+		Arizona: {
+			stress: "positive",
+			sport: "positive",
+			wordsByTopic: {
+				stress: [
+					{ text: "Worry", value: 100 },
+					{ text: "Exam", value: 200 },
+				],
+				sport: [
+					{ text: "Win", value: 100 },
+					{ text: "Fight", value: 200 },
+				],
+			},
+		},
+		Georgia: {
+			stress: "negative",
+			sport: "positive",
+			wordsByTopic: {
+				stress: [
+					{ text: "Worry", value: 100 },
+					{ text: "Exam", value: 200 },
+				],
+				sport: [
+					{ text: "Win", value: 100 },
+					{ text: "Fight", value: 200 },
+				],
+			},
+		},
+		"New York": {
+			stress: "positive",
+			sport: "negative",
+			wordsByTopic: {
+				stress: [
+					{ text: "Worry", value: 100 },
+					{ text: "Exam", value: 200 },
+				],
+				sport: [
+					{ text: "Win", value: 100 },
+					{ text: "Fight", value: 200 },
+				],
+			},
+		},
 	};
-
 	const [chartType, setChartType] = React.useState<"filled" | "bar" | "bubble">("filled");
+	const [topic, setTopic] = React.useState<"stress" | "sport">("stress");
 	const [selectedState, setSelectedState] = React.useState<string | null>(null);
 	const [isZoomed, setIsZoomed] = React.useState(false);
 
@@ -62,43 +126,43 @@ function UI() {
 
 		const path = d3.geoPath().projection(projection);
 
-		// Color scale
-		const colorScale = d3.scaleSequential(d3.interpolateReds).domain([0, 10]);
+		// Replace the existing legend code (around line 94-128) with:
+		const legendData = [
+			{ label: "Positive", color: "green" },
+			{ label: "Neutral", color: "gray" },
+			{ label: "Negative", color: "red" },
+		];
 
-		// Legend
-		const legendScale = d3
-			.scaleLinear()
-			.domain([0, 10])
-			.range([0, 180])
-			.interpolate(d3.interpolateRound);
+		const size = 20;
+		const legendSpacing = 5;
 
-		legend
+		const legendGroup = legend
 			.append("svg")
-			.attr("width", 200)
-			.attr("height", 30)
-			.append("defs")
-			.append("linearGradient")
-			.attr("id", "legend-gradient")
-			.attr("x1", "0%")
-			.attr("y1", "0%")
-			.attr("x2", "100%")
-			.attr("y2", "0%");
+			.attr("width", 120)
+			.attr("height", (size + legendSpacing) * legendData.length);
 
-		legend
+		// Add squares
+		legendGroup
+			.selectAll("rect")
+			.data(legendData)
+			.enter()
 			.append("rect")
 			.attr("x", 0)
-			.attr("y", 10)
-			.attr("width", 200)
-			.attr("height", 20)
-			.style("fill", "url(#legend-gradient)");
+			.attr("y", (_, i) => i * (size + legendSpacing))
+			.attr("width", size)
+			.attr("height", size)
+			.style("fill", (d) => d.color);
 
-		const legendAxis = d3
-			.axisRight(legendScale)
-			.tickValues(legendScale.ticks(2))
-			.tickSize(-20)
-			.tickPadding(8);
-
-		legend.append("g").attr("transform", "translate(200,0)").call(legendAxis);
+		// Add labels
+		legendGroup
+			.selectAll("text")
+			.data(legendData)
+			.enter()
+			.append("text")
+			.attr("x", size + legendSpacing)
+			.attr("y", (d, i) => i * (size + legendSpacing) + size / 2)
+			.text((d) => d.label)
+			.attr("alignment-baseline", "middle");
 
 		// Load US map data
 		d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json").then((us: any) => {
@@ -125,16 +189,16 @@ function UI() {
 				.style("fill", function (d) {
 					const feature = d as unknown as Feature<Geometry>;
 					const stateId = (feature.properties as any).name;
-					const stateStressLevel = stressLevel[stateId] || 0;
-					return chartType === "filled" && stateStressLevel > 0
-						? colorScale(stateStressLevel)
+					const sentiment = sentimentLevel[stateId]?.[topic] ?? null;
+					return chartType === "filled" && sentiment != null
+						? sentimentToColor(sentiment)
 						: "#f5f5f5";
 				})
 				.style("stroke", "#000")
 				.style("stroke-width", "1")
 				.on("click", function (event, d) {
 					event.preventDefault(); // Prevent default right-click menu
-
+					event.stopPropagation();
 					const feature = d as unknown as Feature<Geometry>;
 					const [[x0, y0], [x1, y1]] = path.bounds(feature);
 
@@ -152,11 +216,9 @@ function UI() {
 								.translate(
 									(-(x0 + x1) / 2) * (clientWidth / width),
 									(-(y0 + y1) / 2) * (clientHeight / height)
-								)
+								),
+							d3.pointer(event, svg.node())
 						);
-					// console.log((width - x0 - x1) / 2, (height - y0 - y1) / 2);
-					console.log(svgRef.current?.clientWidth, svgRef.current?.clientHeight);
-					console.log(x0, y0, x1, y1);
 					setIsZoomed(true);
 				})
 				.on("contextmenu", function (event) {
@@ -167,74 +229,72 @@ function UI() {
 					}
 				})
 				.on("mousedown", function (event, d) {
-					// Middle click (button 1)
 					if (event.button === 1) {
 						setSelectedState((d as any).properties.name);
 					}
 				});
 
 			// Add bar chart
-			if (chartType === "bar") {
-				svg
-					.selectAll("rect")
-					.data((states as any).features)
-					.enter()
-					.append("rect")
-					.attr("x", function (d) {
-						const feature = d as unknown as Feature<Geometry>;
-						const stateId = (feature.properties as any).name;
-						const stateStressLevel = stressLevel[stateId] || 0;
-						return path.centroid(d)[0] - 20;
-					})
-					.attr("y", function (d) {
-						const feature = d as unknown as Feature<Geometry>;
-						const stateId = (feature.properties as any).name;
-						const stateStressLevel = stressLevel[stateId] || 0;
-						return path.centroid(d)[1] - stateStressLevel * 10;
-					})
-					.attr("width", 40)
-					.attr("height", function (d) {
-						const feature = d as unknown as Feature<Geometry>;
-						const stateId = (feature.properties as any).name;
-						const stateStressLevel = stressLevel[stateId] || 0;
-						return stateStressLevel * 10;
-					})
-					.style("fill", function (d) {
-						const feature = d as unknown as Feature<Geometry>;
-						const stateId = (feature.properties as any).name;
-						const stateStressLevel = stressLevel[stateId] || 0;
-						return colorScale(stateStressLevel);
-					});
-			}
+			// if (chartType === "bar") {
+			// 	svg
+			// 		.selectAll("rect")
+			// 		.data((states as any).features)
+			// 		.enter()
+			// 		.append("rect")
+			// 		.attr("x", function (d: any) {
+			// 			const feature = d as unknown as Feature<Geometry>;
+			// 			const stateId = (feature.properties as any).name;
+			// 			return path.centroid(d)[0] - 20;
+			// 		})
+			// 		.attr("y", function (d: any) {
+			// 			const feature = d as unknown as Feature<Geometry>;
+			// 			const stateId = (feature.properties as any).name;
+			// 			const stateStressLevel = sentimentLevel[stateId] || 0;
+			// 			return path.centroid(d)[1] - stateStressLevel * 10;
+			// 		})
+			// 		.attr("width", 40)
+			// 		.attr("height", function (d) {
+			// 			const feature = d as unknown as Feature<Geometry>;
+			// 			const stateId = (feature.properties as any).name;
+			// 			const stateStressLevel = sentimentLevel[stateId] || 0;
+			// 			return stateStressLevel * 10;
+			// 		})
+			// 		.style("fill", function (d) {
+			// 			const feature = d as unknown as Feature<Geometry>;
+			// 			const stateId = (feature.properties as any).name;
+			// 			const stateStressLevel = sentimentLevel[stateId] || 0;
+			// 			return colorScale(stateStressLevel);
+			// 		});
+			// }
 
 			// Add bubble chart
-			if (chartType === "bubble") {
-				svg
-					.selectAll("circle")
-					.data((states as any).features)
-					.enter()
-					.append("circle")
-					.attr("cx", function (d) {
-						return path.centroid(d)[0];
-					})
-					.attr("cy", function (d) {
-						return path.centroid(d)[1];
-					})
-					.attr("r", function (d) {
-						const feature = d as unknown as Feature<Geometry>;
-						const stateId = (feature.properties as any).name;
-						const stateStressLevel = stressLevel[stateId] || 0;
-						return stateStressLevel * 5; // Adjust the multiplier as needed
-					})
-					.style("fill", function (d) {
-						const feature = d as unknown as Feature<Geometry>;
-						const stateId = (feature.properties as any).name;
-						const stateStressLevel = stressLevel[stateId] || 0;
-						return colorScale(stateStressLevel);
-					});
-			}
+			// if (chartType === "bubble") {
+			// 	svg
+			// 		.selectAll("circle")
+			// 		.data((states as any).features)
+			// 		.enter()
+			// 		.append("circle")
+			// 		.attr("cx", function (d: any) {
+			// 			return path.centroid(d)[0];
+			// 		})
+			// 		.attr("cy", function (d: any) {
+			// 			return path.centroid(d)[1];
+			// 		})
+			// 		.attr("r", function (d) {
+			// 			const feature = d as unknown as Feature<Geometry>;
+			// 			const stateId = (feature.properties as any).name;
+			// 			const stateStressLevel = sentimentLevel[stateId] || 0;
+			// 			return stateStressLevel * 5; // Adjust the multiplier as needed
+			// 		})
+			// 		.style("fill", function (d) {
+			// 			const feature = d as unknown as Feature<Geometry>;
+			// 			const stateId = (feature.properties as any).name;
+			// 			const stateStressLevel = sentimentLevel[stateId] || 0;
+			// 			return colorScale(stateStressLevel);
+			// 		});
+			// }
 		});
-	}, [chartType, isZoomed]);
+	}, [chartType, topic, isZoomed]);
 
 	return (
 		<Flex direction={{ base: "column", md: "row" }} w="100vw" h="100vh" overflow="hidden">
@@ -255,47 +315,70 @@ function UI() {
 				borderRadius="md"
 				position="relative"
 			>
-				<Select
-					position="absolute"
-					top="1rem"
-					left="1rem"
-					size="sm"
-					width="fit-content"
-					value={chartType}
-					onChange={(e) => setChartType(e.target.value as "filled" | "bar" | "bubble")}
-				>
-					<option value="filled">Filled Color</option>
-					<option value="bar">Bar Chart</option>
-					<option value="bubble">Bubble Chart</option>
-				</Select>
+				<HStack position="absolute" top="1rem" left="1rem" spacing={2} width="fit-content">
+					<Select
+						size="sm"
+						width="fit-content"
+						value={topic}
+						onChange={(e) => setTopic(e.target.value as "stress" | "sport")}
+					>
+						<option value="stress">Stress</option>
+						<option value="sport">Sport</option>
+					</Select>
+					<Select
+						size="sm"
+						width="fit-content"
+						value={chartType}
+						onChange={(e) => setChartType(e.target.value as "filled" | "bar" | "bubble")}
+					>
+						<option value="filled">Filled Color</option>
+						<option value="bar">Bar Chart</option>
+						<option value="bubble">Bubble Chart</option>
+					</Select>
+				</HStack>
+
 				<svg ref={svgRef} style={{ width: "100%", height: "100%", overflow: "hidden" }}></svg>
 				<VStack
 					position="absolute"
 					top="1rem"
-					right="1rem"
+					right="5rem"
 					align="end"
 					spacing={4}
 					bg="white"
 					p={2}
 					borderRadius="md"
 				>
-					<Box
-						ref={legendRef}
-						height="100px"
-						width="20px"
-						bgGradient="linear(to-b, #f5f5f5, red)"
-					/>
-					<Modal isOpen={!!selectedState} onClose={() => setSelectedState(null)}>
-						<ModalOverlay />
-						<ModalContent>
-							<ModalHeader>{selectedState}</ModalHeader>
-							<ModalCloseButton />
-							<ModalBody>
-								<Text>{`Stress level: ${stressLevel[selectedState!!] || 0}`}</Text>
-							</ModalBody>
-						</ModalContent>
-					</Modal>
+					<Box ref={legendRef} height="100px" width="20px" />
 				</VStack>
+				<Modal
+					isOpen={!!selectedState}
+					onClose={() => setSelectedState(null)}
+					size={{ base: "full", md: "75%" }}
+				>
+					<ModalOverlay />
+					<ModalContent w="75vw" h="90vh" maxW="75vw">
+						<ModalHeader>{selectedState}</ModalHeader>
+						<ModalCloseButton />
+						<ModalBody>
+							<Tabs defaultIndex={0} variant="enclosed">
+								<TabList>
+									<Tab>Word Cloud</Tab>
+									<Tab>Analytics Report</Tab>
+								</TabList>
+								<TabPanels>
+									<TabPanel>
+										<Word3DCloud
+											words={sentimentLevel[selectedState]?.["wordsByTopic"][topic]}
+										></Word3DCloud>
+									</TabPanel>
+									<TabPanel>
+										<Text>Analytics Report (WIP)</Text>
+									</TabPanel>
+								</TabPanels>
+							</Tabs>
+						</ModalBody>
+					</ModalContent>
+				</Modal>
 			</Box>
 		</Flex>
 	);
