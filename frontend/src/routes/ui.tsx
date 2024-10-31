@@ -47,7 +47,7 @@ function UI() {
 	useEffect(() => {
 		if (!svgRef.current || !legendRef.current) return;
 
-		const svg = d3.select(svgRef.current);
+		const svg = d3.select(svgRef.current).attr("viewBox", [0, 0, width, height]);
 		const legend = d3.select(legendRef.current);
 
 		// Clear previous content
@@ -121,15 +121,14 @@ function UI() {
 				.append("path")
 				.attr("d", path as any)
 				.attr("class", "state")
+				.attr("cursor", "pointer")
 				.style("fill", function (d) {
 					const feature = d as unknown as Feature<Geometry>;
 					const stateId = (feature.properties as any).name;
 					const stateStressLevel = stressLevel[stateId] || 0;
-					return chartType === "filled"
-						? stateStressLevel > 0
-							? colorScale(stateStressLevel)
-							: "#f5f5f5"
-						: "#fff";
+					return chartType === "filled" && stateStressLevel > 0
+						? colorScale(stateStressLevel)
+						: "#f5f5f5";
 				})
 				.style("stroke", "#000")
 				.style("stroke-width", "1")
@@ -141,17 +140,26 @@ function UI() {
 
 					const feature = d as unknown as Feature<Geometry>;
 					const [[x0, y0], [x1, y1]] = path.bounds(feature);
-					const dx = x1 - x0;
-					const dy = y1 - y0;
-					// const scale = Math.min(8, 0.9 / Math.max(dx / width, dy / height));
-					const scale = 1.5;
-					const translateX = width / 2 - ((x0 + x1) / 2) * scale;
-					const translateY = height / 2 - ((y0 + y1) / 2) * scale;
+
+					const clientWidth = svgRef.current?.clientWidth || 0;
+					const clientHeight = svgRef.current?.clientHeight || 0;
 
 					svg
 						.transition()
 						.duration(750)
-						.call(zoom.transform, d3.zoomIdentity.scale(scale).translate(translateX, translateY));
+						.call(
+							zoom.transform,
+							d3.zoomIdentity
+								.scale(3)
+								.translate(clientWidth / 2, clientHeight / 2)
+								.translate(
+									(-(x0 + x1) / 2) * (clientWidth / width),
+									(-(y0 + y1) / 2) * (clientHeight / height)
+								)
+						);
+					// console.log((width - x0 - x1) / 2, (height - y0 - y1) / 2);
+					console.log(svgRef.current?.clientWidth, svgRef.current?.clientHeight);
+					console.log(x0, y0, x1, y1);
 					setIsZoomed(true);
 				})
 				.on("mousedown", function (event) {
@@ -159,24 +167,10 @@ function UI() {
 					if (event.button === 1) {
 						event.preventDefault();
 						if (isZoomed) {
-							// Zoom out
 							svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
 							setIsZoomed(false);
 						}
 					}
-				})
-				.on("mouseout", function (event, d) {
-					const feature = d as unknown as Feature<Geometry>;
-					const stateId = (feature.properties as any).name;
-					const stateStressLevel = stressLevel[stateId] || 0;
-					d3.select(this).style(
-						"fill",
-						chartType === "filled"
-							? stateStressLevel > 0
-								? colorScale(stateStressLevel)
-								: "#f5f5f5"
-							: "#fff"
-					);
 				});
 
 			// Add bar chart
@@ -274,7 +268,7 @@ function UI() {
 					<option value="bar">Bar Chart</option>
 					<option value="bubble">Bubble Chart</option>
 				</Select>
-				<svg ref={svgRef} style={{ width: "100%", height: "100%" }}></svg>
+				<svg ref={svgRef} style={{ width: "100%", height: "100%", overflow: "hidden" }}></svg>
 				<VStack
 					position="absolute"
 					top="1rem"
