@@ -131,6 +131,7 @@ function UI() {
 			{ label: "Positive", color: "green" },
 			{ label: "Neutral", color: "gray" },
 			{ label: "Negative", color: "red" },
+			{ label: "Unknown", color: "#f5f5f5" },
 		];
 
 		const size = 20;
