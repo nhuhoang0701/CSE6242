@@ -1,9 +1,11 @@
-import * as d3 from "d3";
 
+import * as d3 from "d3";
 import {
 	Box,
+	Button,
 	Flex,
 	HStack,
+	Input,
 	Modal,
 	ModalBody,
 	ModalCloseButton,
@@ -16,12 +18,14 @@ import {
 	TabPanel,
 	TabPanels,
 	Tabs,
-	Text,
 	VStack,
 } from "@chakra-ui/react";
+
 import { Feature, Geometry } from "geojson";
 import Word3DCloud, { Word3DCloudProps } from "../components/WordCloud";
-import { useEffect, useRef } from "react";
+import AnalyticsReport from "../components/AnalyticsReport";
+
+import { useEffect, useRef, useCallback} from "react";
 
 import React from "react";
 import Sidebar from "../components/Common/Sidebar";
@@ -29,26 +33,43 @@ import { createFileRoute } from "@tanstack/react-router";
 import { feature } from "topojson-client";
 
 type Sentiment = "positive" | "neutral" | "negative";
-interface StateData {
-	[key: string]: {
-		stress: Sentiment;
-		sport: Sentiment;
-		wordsByTopic: { [key in "stress" | "sport"]: Word3DCloudProps };
-	};
+
+// interface StateData {
+// 	[key: string]: {
+// 		stress: Sentiment;
+// 		sport: Sentiment;
+// 		wordsByTopic: { [key in "stress" | "sport"]: Word3DCloudProps };
+// 	};
+// }
+
+interface RedditPost {
+	State: string;
+	text: string;
+	positive: number;
+	neutral: number;
+	negative: number;
 }
 
-function sentimentToColor(sentiment: Sentiment | null) {
-	switch (sentiment) {
-		case "positive":
-			return "green";
-		case "negative":
-			return "red";
-		case "neutral":
-			return "gray";
-		case null:
-			return "gray";
-	}
-}
+// function sentimentToColor(sentiment: Sentiment | null) {
+// 	switch (sentiment) {
+// 		case "positive":
+// 			return "green";
+// 		case "negative":
+// 			return "red";
+// 		case "neutral":
+// 			return "gray";
+// 		case null:
+// 			return "gray";
+// 	}
+// }
+
+// function debounce(func, wait) {
+//     let timeout;
+//     return (...args) => {
+//         clearTimeout(timeout);
+//         timeout = setTimeout(() => func(...args), wait);
+//     };
+// }
 
 export const Route = createFileRoute("/ui")({
 	component: UI,
@@ -59,55 +80,173 @@ function UI() {
 	const legendRef = useRef<HTMLDivElement | null>(null);
 	const width = 960;
 	const height = 600;
-	const sentimentLevel = {
-		Arizona: {
-			stress: "positive",
-			sport: "positive",
-			wordsByTopic: {
-				stress: [
-					{ text: "Worry", value: 100 },
-					{ text: "Exam", value: 200 },
-				],
-				sport: [
-					{ text: "Win", value: 100 },
-					{ text: "Fight", value: 200 },
-				],
-			},
-		},
-		Georgia: {
-			stress: "negative",
-			sport: "positive",
-			wordsByTopic: {
-				stress: [
-					{ text: "Worry", value: 100 },
-					{ text: "Exam", value: 200 },
-				],
-				sport: [
-					{ text: "Win", value: 100 },
-					{ text: "Fight", value: 200 },
-				],
-			},
-		},
-		"New York": {
-			stress: "positive",
-			sport: "negative",
-			wordsByTopic: {
-				stress: [
-					{ text: "Worry", value: 100 },
-					{ text: "Exam", value: 200 },
-				],
-				sport: [
-					{ text: "Win", value: 100 },
-					{ text: "Fight", value: 200 },
-				],
-			},
-		},
-	};
 	const [chartType, setChartType] = React.useState<"filled" | "bar" | "bubble">("filled");
 	const [topic, setTopic] = React.useState<"stress" | "sport">("stress");
-	const [selectedState, setSelectedState] = React.useState<string | null>(null);
+	const [wordCloudData, setWordCloudData] = React.useState<{ text: string; value: number }[]>([]);
 	const [isZoomed, setIsZoomed] = React.useState(false);
+	const [selectedState, setSelectedState] = React.useState<string | null>(null);
+	const [searchTerm, setSearchTerm] = React.useState<string>(""); // State for search term
+	const [posts, setPosts] = React.useState<RedditPost[]>([]); // State for storing CSV data
+	const [stateSentiments, setStateSentiments] = React.useState<{ [state: string]: Sentiment }>({});
+	const [selectedWord, setSelectedWord] = React.useState<string>(""); // State for selected word
+	// const [hits, setHits] = React.useState(0);
+	
 
+	useEffect(() => {
+		d3.csv("dataset/ASU_2019_sampled.csv").then((data) => {
+			console.log("Raw CSV data:", data);
+			const formattedData = data.map((row: any) => ({
+				State: row.state ? row.state.trim() : "",
+				text: row.body ? row.body.trim() : "",
+				positive: row.emo_pred_pos ? parseFloat(row.emo_pred_pos) : 0,
+				neutral: row.emo_pred_neu ? parseFloat(row.emo_pred_neu) : 0,
+				negative: row.emo_pred_neg ? parseFloat(row.emo_pred_neg) : 0,
+			}));
+			setPosts(formattedData);
+			console.log("Loaded posts:", formattedData);
+		}).catch((error) => {
+        console.error("Error loading CSV data:", error); // Log any errors in loading
+    });
+	}, []);
+
+	// const sentimentLevel = {
+
+		
+	// 	Arizona: {
+	// 		stress: "positive",
+	// 		sport: "positive",
+	// 		wordsByTopic: {
+	// 			stress: [
+	// 				{ text: "Worry", value: 100 },
+	// 				{ text: "Exam", value: 200 }
+	// 				,
+	// 			],
+	// 			sport: [
+	// 				{ text: "Win", value: 100 },
+	// 				{ text: "Fight", value: 200 },
+	// 			],
+	// 		},
+	// 	},
+	// 	Georgia: {
+	// 		stress: "negative",
+	// 		sport: "positive",
+	// 		wordsByTopic: {
+	// 			stress: [
+	// 				{ text: "Worry", value: 100 },
+	// 				{ text: "Exam", value: 200 },
+	// 			],
+	// 			sport: [
+	// 				{ text: "Win", value: 100 },
+	// 				{ text: "Fight", value: 200 },
+	// 			],
+	// 		},
+	// 	},
+	// 	"New York": {
+	// 		stress: "positive",
+	// 		sport: "negative",
+	// 		wordsByTopic: {
+	// 			stress: [
+	// 				{ text: "Worry", value: 100 },
+	// 				{ text: "Exam", value: 200 },
+	// 			],
+	// 			sport: [
+	// 				{ text: "Win", value: 100 },
+	// 				{ text: "Fight", value: 200 },
+	// 			],
+	// 		},
+	// 	},
+	// };
+
+	// const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+	// 	setSearchTerm(event.target.value);
+	// };
+
+	const handleSearchSubmit = () => {
+		if (!searchTerm) return;
+
+		// let newHits = 0;
+	
+		const sentimentMap: { [state: string]: { positive: number; neutral: number; negative: number } } = {};
+		const wordCounts: { [word: string]: number } = {};
+	
+		// Filter posts by search term before processing
+		const filteredPosts = posts.filter((post) => {
+            if (post.text.toLowerCase().includes(searchTerm.toLowerCase())) {
+                // newHits++; // Increment hit count when search term is found
+                return true;
+            }
+            return false;
+        });
+	
+		filteredPosts.forEach((post) => {
+			if (!sentimentMap[post.State]) {
+				sentimentMap[post.State] = { positive: 0, neutral: 0, negative: 0 };
+			}
+	
+			sentimentMap[post.State].positive += post.positive;
+			sentimentMap[post.State].neutral += post.neutral;
+			sentimentMap[post.State].negative += post.negative;
+	
+			// Split text into words and count occurrences
+			const words = post.text.split(/\s+/);
+			words.forEach((word) => {
+				const normalizedWord = word.toLowerCase().replace(/[^a-z0-9]/gi, ''); // Remove punctuation
+				if (normalizedWord) {
+					wordCounts[normalizedWord] = (wordCounts[normalizedWord] || 0) + 1;
+				}
+			});
+		});
+	
+		// Log word counts and sentiment map only for filtered results
+		console.log("Filtered Word counts:", wordCounts);
+		console.log("Filtered Sentiment map:", sentimentMap);
+	
+		// Convert word counts into the format needed for Word3DCloud
+		const formattedWords = Object.keys(wordCounts).map((word) => ({
+			text: word,
+			value: wordCounts[word],
+		}));
+
+		// setHits(newHits);
+		setWordCloudData(formattedWords);
+	
+		// Determine the maximum sentiment for each state
+		const newStateSentiments: { [state: string]: Sentiment } = {};
+		Object.keys(sentimentMap).forEach((state) => {
+			const { positive, neutral, negative } = sentimentMap[state];
+			let maxSentiment: Sentiment = "neutral";
+			if (positive >= neutral && positive >= negative) {
+				maxSentiment = "positive";
+			} else if (negative >= positive && negative >= neutral) {
+				maxSentiment = "negative";
+			}
+			newStateSentiments[state] = maxSentiment;
+		});
+	
+		// Update state sentiments
+		setStateSentiments(newStateSentiments);
+	};
+	
+	
+	// const handleWordClick = (word: string) => {
+	// 	setSelectedWord(word); // Store the selected word
+	// 	setSelectedTabIndex(1); // Switch to the "Analytics Report" tab
+	// };
+
+	const sentimentToColor = (sentiment: Sentiment | null) => {
+		switch (sentiment) {
+			case "positive":
+				return "green";
+			case "negative":
+				return "red";
+			case "neutral":
+				return "gray";
+			default:
+				return "gray";
+		}
+	};
+	
+	
 	useEffect(() => {
 		if (!svgRef.current || !legendRef.current) return;
 
@@ -190,7 +329,7 @@ function UI() {
 				.style("fill", function (d) {
 					const feature = d as unknown as Feature<Geometry>;
 					const stateId = (feature.properties as any).name;
-					const sentiment = sentimentLevel[stateId]?.[topic] ?? null;
+					const sentiment = stateSentiments[stateId] ?? null;
 					return chartType === "filled" && sentiment != null
 						? sentimentToColor(sentiment)
 						: "#f5f5f5";
@@ -295,7 +434,10 @@ function UI() {
 			// 		});
 			// }
 		});
-	}, [chartType, topic, isZoomed]);
+	}, [chartType, topic, isZoomed, stateSentiments]);
+
+	// const handleDebouncedSearch = React.useCallback(debounce(handleSearchSubmit, 300), [searchTerm]);
+
 
 	return (
 		<Flex direction={{ base: "column", md: "row" }} w="100vw" h="100vh" overflow="hidden">
@@ -317,7 +459,20 @@ function UI() {
 				position="relative"
 			>
 				<HStack position="absolute" top="1rem" left="1rem" spacing={2} width="fit-content">
-					<Select
+					<Input
+						placeholder="Search Your Topic!"
+						value={searchTerm}
+						onChange={(e) => {
+							setSearchTerm(e.target.value);
+							// handleDebouncedSearch(); // Runs after the user stops typing for 300ms
+						}}
+						size="sm"
+						width="150px"
+					/>
+					<Button onClick={handleSearchSubmit} size="sm" colorScheme="blue">
+						Submit
+					</Button>
+					{/* <Select
 						size="sm"
 						width="fit-content"
 						value={topic}
@@ -325,7 +480,7 @@ function UI() {
 					>
 						<option value="stress">Stress</option>
 						<option value="sport">Sport</option>
-					</Select>
+					</Select> */}
 					<Select
 						size="sm"
 						width="fit-content"
@@ -336,6 +491,9 @@ function UI() {
 						<option value="bar">Bar Chart</option>
 						<option value="bubble">Bubble Chart</option>
 					</Select>
+					{/* Add the search box */}
+					
+					
 				</HStack>
 
 				<svg ref={svgRef} style={{ width: "100%", height: "100%", overflow: "hidden" }}></svg>
@@ -369,11 +527,15 @@ function UI() {
 								<TabPanels>
 									<TabPanel>
 										<Word3DCloud
-											words={sentimentLevel[selectedState]?.["wordsByTopic"][topic]}
+											words={wordCloudData}
+											onWordSelect={(word) => {
+												setSelectedWord(word);
+												// handleDebouncedSearch()
+											}}
 										></Word3DCloud>
 									</TabPanel>
 									<TabPanel>
-										<Text>Analytics Report (WIP)</Text>
+										<AnalyticsReport word={selectedWord} /> {/* Render AnalyticsReport */}
 									</TabPanel>
 								</TabPanels>
 							</Tabs>
