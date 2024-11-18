@@ -78,9 +78,11 @@ export const Route = createFileRoute("/ui")({
 function UI() {
 	const svgRef = useRef<SVGSVGElement | null>(null);
 	const legendRef = useRef<HTMLDivElement | null>(null);
+	const tooltipRef = useRef<HTMLDivElement | null>(null); // Tooltip reference for displaying sentiment values
 	const width = 960;
 	const height = 600;
 	const [chartType, setChartType] = React.useState<"filled" | "bar" | "bubble">("filled");
+	const [year, setYear] = React.useState("2019"); // State for selected year
 	const [topic, setTopic] = React.useState<"stress" | "sport">("stress");
 	const [wordCloudData, setWordCloudData] = React.useState<{ text: string; value: number }[]>([]);
 	const [isZoomed, setIsZoomed] = React.useState(false);
@@ -88,16 +90,16 @@ function UI() {
 	const [searchTerm, setSearchTerm] = React.useState<string>(""); // State for search term
 	const [posts, setPosts] = React.useState<RedditPost[]>([]); // State for storing CSV data
 	const [stateSentiments, setStateSentiments] = React.useState<{ [state: string]: Sentiment }>({});
+	const [sentimentMap, setSentimentMap] = React.useState<{ [state: string]: { positive: number; neutral: number; negative: number } }>({});
 	const [selectedWord, setSelectedWord] = React.useState<string>(""); // State for selected word
 	// const [hits, setHits] = React.useState(0);
 	
-
-	useEffect(() => {
-		d3.csv("dataset/ASU_2019_sampled.csv").then((data) => {
-			console.log("Raw CSV data:", data);
+	const loadDataForYear = (selectedYear: string) => {
+		d3.csv(`dataset/data_${selectedYear}.csv`).then((data) => {
+			console.log(`Raw CSV data for ${selectedYear}:`, data);
 			const formattedData = data.map((row: any) => ({
-				State: row.state ? row.state.trim() : "",
-				text: row.body ? row.body.trim() : "",
+				State: row.State ? row.State.trim() : "",
+				text: row.preprocessed_text ? row.preprocessed_text.trim() : "",
 				positive: row.emo_pred_pos ? parseFloat(row.emo_pred_pos) : 0,
 				neutral: row.emo_pred_neu ? parseFloat(row.emo_pred_neu) : 0,
 				negative: row.emo_pred_neg ? parseFloat(row.emo_pred_neg) : 0,
@@ -105,9 +107,30 @@ function UI() {
 			setPosts(formattedData);
 			console.log("Loaded posts:", formattedData);
 		}).catch((error) => {
-        console.error("Error loading CSV data:", error); // Log any errors in loading
-    });
-	}, []);
+			console.error("Error loading CSV data:", error);
+		});
+	};
+	
+	useEffect(() => {
+		loadDataForYear(year);
+	}, [year]);
+
+	// useEffect(() => {
+	// 	d3.csv("dataset/ASU_2019_sampled.csv").then((data) => {
+	// 		console.log("Raw CSV data:", data);
+	// 		const formattedData = data.map((row: any) => ({
+	// 			State: row.state ? row.state.trim() : "",
+	// 			text: row.body ? row.body.trim() : "",
+	// 			positive: row.emo_pred_pos ? parseFloat(row.emo_pred_pos) : 0,
+	// 			neutral: row.emo_pred_neu ? parseFloat(row.emo_pred_neu) : 0,
+	// 			negative: row.emo_pred_neg ? parseFloat(row.emo_pred_neg) : 0,
+	// 		}));
+	// 		setPosts(formattedData);
+	// 		console.log("Loaded posts:", formattedData);
+	// 	}).catch((error) => {
+    //     console.error("Error loading CSV data:", error); // Log any errors in loading
+    // });
+	// }, []);
 
 	// const sentimentLevel = {
 
@@ -161,41 +184,82 @@ function UI() {
 	// 	setSearchTerm(event.target.value);
 	// };
 
+	// const handleSearchSubmit = () => {
+	// 	if (!searchTerm) return;
+
+	// 	// let newHits = 0;
+	
+	// 	const sentimentMap: { [state: string]: { positive: number; neutral: number; negative: number } } = {};
+	// 	const wordCounts: { [word: string]: number } = {};
+	
+	// 	// Filter posts by search term before processing
+	// 	const filteredPosts = posts.filter((post) => {
+    //         if (post.text.toLowerCase().includes(searchTerm.toLowerCase())) {
+    //             // newHits++; // Increment hit count when search term is found
+    //             return true;
+    //         }
+    //         return false;
+    //     });
+	
+	// 	filteredPosts.forEach((post) => {
+	// 		if (!sentimentMap[post.State]) {
+	// 			sentimentMap[post.State] = { positive: 0, neutral: 0, negative: 0 };
+	// 		}
+	
+	// 		sentimentMap[post.State].positive += post.positive;
+	// 		sentimentMap[post.State].neutral += post.neutral;
+	// 		sentimentMap[post.State].negative += post.negative;
+	
+	// 		// Split text into words and count occurrences
+	// 		const words = post.text.split(/\s+/);
+	// 		words.forEach((word) => {
+	// 			const normalizedWord = word.toLowerCase().replace(/[^a-z0-9]/gi, ''); // Remove punctuation
+	// 			if (normalizedWord) {
+	// 				wordCounts[normalizedWord] = (wordCounts[normalizedWord] || 0) + 1;
+	// 			}
+	// 		});
+	// 	});
 	const handleSearchSubmit = () => {
 		if (!searchTerm) return;
 
-		// let newHits = 0;
-	
-		const sentimentMap: { [state: string]: { positive: number; neutral: number; negative: number } } = {};
+		const newSentimentMap: { [state: string]: { positive: number; neutral: number; negative: number } } = {};
 		const wordCounts: { [word: string]: number } = {};
-	
+
 		// Filter posts by search term before processing
 		const filteredPosts = posts.filter((post) => {
-            if (post.text.toLowerCase().includes(searchTerm.toLowerCase())) {
-                // newHits++; // Increment hit count when search term is found
-                return true;
-            }
-            return false;
-        });
-	
+			return post.text.toLowerCase().includes(searchTerm.toLowerCase());
+		});
+
 		filteredPosts.forEach((post) => {
-			if (!sentimentMap[post.State]) {
-				sentimentMap[post.State] = { positive: 0, neutral: 0, negative: 0 };
+			if (!newSentimentMap[post.State]) {
+				newSentimentMap[post.State] = { positive: 0, neutral: 0, negative: 0 };
 			}
-	
-			sentimentMap[post.State].positive += post.positive;
-			sentimentMap[post.State].neutral += post.neutral;
-			sentimentMap[post.State].negative += post.negative;
-	
-			// Split text into words and count occurrences
+
+			newSentimentMap[post.State].positive += post.positive;
+			newSentimentMap[post.State].neutral += post.neutral;
+			newSentimentMap[post.State].negative += post.negative;
+
 			const words = post.text.split(/\s+/);
 			words.forEach((word) => {
-				const normalizedWord = word.toLowerCase().replace(/[^a-z0-9]/gi, ''); // Remove punctuation
+				const normalizedWord = word.toLowerCase().replace(/[^a-z0-9]/gi, '');
 				if (normalizedWord) {
 					wordCounts[normalizedWord] = (wordCounts[normalizedWord] || 0) + 1;
 				}
 			});
 		});
+
+		Object.keys(newSentimentMap).forEach((state) => {
+			const sentiment = newSentimentMap[state];
+			const total = sentiment.positive + sentiment.neutral + sentiment.negative;
+	
+			if (total > 0) {
+				sentiment.positive /= total;
+				sentiment.neutral /= total;
+				sentiment.negative /= total;
+			}
+		});
+
+		setSentimentMap(newSentimentMap);
 	
 		// Log word counts and sentiment map only for filtered results
 		console.log("Filtered Word counts:", wordCounts);
@@ -212,8 +276,8 @@ function UI() {
 	
 		// Determine the maximum sentiment for each state
 		const newStateSentiments: { [state: string]: Sentiment } = {};
-		Object.keys(sentimentMap).forEach((state) => {
-			const { positive, neutral, negative } = sentimentMap[state];
+		Object.keys(newSentimentMap).forEach((state) => {
+			const { positive, neutral, negative } = newSentimentMap[state];
 			let maxSentiment: Sentiment = "neutral";
 			if (positive >= neutral && positive >= negative) {
 				maxSentiment = "positive";
@@ -252,6 +316,7 @@ function UI() {
 
 		const svg = d3.select(svgRef.current).attr("viewBox", [0, 0, width, height]);
 		const legend = d3.select(legendRef.current);
+		const tooltip = d3.select(tooltipRef.current);
 
 		// Clear previous content
 		svg.selectAll("*").remove();
@@ -262,7 +327,7 @@ function UI() {
 			.geoAlbersUsa()
 			.scale(1100)
 			.translate([width / 2, height / 2]);
-
+		
 		const path = d3.geoPath().projection(projection);
 
 		// Replace the existing legend code (around line 94-128) with:
@@ -372,6 +437,33 @@ function UI() {
 					if (event.button === 1) {
 						setSelectedState((d as any).properties.name);
 					}
+				})
+				.on("mouseover", function (event, d) {
+					const stateId = d.properties.name;
+					const sentimentData = sentimentMap[stateId];
+					const svgBounds = svgRef.current.getBoundingClientRect();
+
+					// Show tooltip with sentiment values
+					if (sentimentData) {
+						tooltip
+							.style("opacity", 1)
+							.html(
+								`<strong>${stateId}</strong><br>Positive: ${sentimentData.positive.toFixed(2)}<br>Neutral: ${sentimentData.neutral.toFixed(2)}<br>Negative: ${sentimentData.negative.toFixed(2)}`
+							)
+							.style("left", `${event.clientX - svgBounds.left + 50}px`)
+            				.style("top", `${event.clientY - svgBounds.top + 10}px`);
+					}
+				})
+				.on("mousemove", function (event) {
+					const svgBounds = svgRef.current.getBoundingClientRect();
+					// Update tooltip position as the mouse moves
+					tooltip
+						.style("left", `${event.clientX - svgBounds.left +50}px`)
+						.style("top", `${event.clientY - svgBounds.top + 10}px`);
+				})
+				.on("mouseout", function () {
+					// Hide tooltip when mouse leaves the state
+					tooltip.style("opacity", 0);
 				});
 
 			// Add bar chart
@@ -434,7 +526,7 @@ function UI() {
 			// 		});
 			// }
 		});
-	}, [chartType, topic, isZoomed, stateSentiments]);
+	}, [chartType, topic, isZoomed, stateSentiments, sentimentMap]);
 
 	// const handleDebouncedSearch = React.useCallback(debounce(handleSearchSubmit, 300), [searchTerm]);
 
@@ -469,6 +561,20 @@ function UI() {
 						size="sm"
 						width="150px"
 					/>
+
+					{/* Year Selector */}
+					<Select
+						size="sm"
+						width="fit-content"
+						value={year}
+						onChange={(e) => setYear(e.target.value)}
+					>
+						<option value="2019">2019</option>
+						<option value="2020">2020</option>
+						<option value="2021">2021</option>
+						<option value="2022">2022</option>
+					</Select>
+
 					<Button onClick={handleSearchSubmit} size="sm" colorScheme="blue">
 						Submit
 					</Button>
@@ -481,6 +587,9 @@ function UI() {
 						<option value="stress">Stress</option>
 						<option value="sport">Sport</option>
 					</Select> */}
+
+
+
 					<Select
 						size="sm"
 						width="fit-content"
@@ -509,6 +618,25 @@ function UI() {
 				>
 					<Box ref={legendRef} height="100px" width="20px" />
 				</VStack>
+
+				{/* Tooltip */}
+				<div
+					ref={tooltipRef}
+					style={{
+						position: "absolute",
+						backgroundColor: "white",
+						padding: "8px",
+						border: "1px solid #ccc",
+						borderRadius: "4px",
+						boxShadow: "0px 0px 5px rgba(0, 0, 0, 0.2)",
+						pointerEvents: "none",
+						opacity: 0,
+						transition: "opacity 0.2s ease-in-out",
+						fontSize: "12px",
+						color: "#333",
+					}}
+				></div>
+				
 				<Modal
 					isOpen={!!selectedState}
 					onClose={() => setSelectedState(null)}
