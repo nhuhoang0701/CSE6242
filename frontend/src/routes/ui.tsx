@@ -16,7 +16,7 @@ import {
 	VStack,
 } from "@chakra-ui/react";
 import { Feature, Geometry } from "geojson";
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import AnalyticsReport from "../components/AnalyticsReport";
 import React from "react";
@@ -43,27 +43,6 @@ interface RedditPost {
 	neutral: number;
 	negative: number;
 }
-
-// function sentimentToColor(sentiment: Sentiment | null) {
-// 	switch (sentiment) {
-// 		case "positive":
-// 			return "green";
-// 		case "negative":
-// 			return "red";
-// 		case "neutral":
-// 			return "gray";
-// 		case null:
-// 			return "gray";
-// 	}
-// }
-
-// function debounce(func, wait) {
-//     let timeout;
-//     return (...args) => {
-//         clearTimeout(timeout);
-//         timeout = setTimeout(() => func(...args), wait);
-//     };
-// }
 
 export const Route = createFileRoute("/ui")({
 	component: UI,
@@ -113,109 +92,6 @@ function UI() {
 		loadDataForYear(year);
 	}, [year]);
 
-	// useEffect(() => {
-	// 	d3.csv("dataset/ASU_2019_sampled.csv").then((data) => {
-	// 		console.log("Raw CSV data:", data);
-	// 		const formattedData = data.map((row: any) => ({
-	// 			State: row.state ? row.state.trim() : "",
-	// 			text: row.body ? row.body.trim() : "",
-	// 			positive: row.emo_pred_pos ? parseFloat(row.emo_pred_pos) : 0,
-	// 			neutral: row.emo_pred_neu ? parseFloat(row.emo_pred_neu) : 0,
-	// 			negative: row.emo_pred_neg ? parseFloat(row.emo_pred_neg) : 0,
-	// 		}));
-	// 		setPosts(formattedData);
-	// 		console.log("Loaded posts:", formattedData);
-	// 	}).catch((error) => {
-	//     console.error("Error loading CSV data:", error); // Log any errors in loading
-	// });
-	// }, []);
-
-	// const sentimentLevel = {
-
-	// 	Arizona: {
-	// 		stress: "positive",
-	// 		sport: "positive",
-	// 		wordsByTopic: {
-	// 			stress: [
-	// 				{ text: "Worry", value: 100 },
-	// 				{ text: "Exam", value: 200 }
-	// 				,
-	// 			],
-	// 			sport: [
-	// 				{ text: "Win", value: 100 },
-	// 				{ text: "Fight", value: 200 },
-	// 			],
-	// 		},
-	// 	},
-	// 	Georgia: {
-	// 		stress: "negative",
-	// 		sport: "positive",
-	// 		wordsByTopic: {
-	// 			stress: [
-	// 				{ text: "Worry", value: 100 },
-	// 				{ text: "Exam", value: 200 },
-	// 			],
-	// 			sport: [
-	// 				{ text: "Win", value: 100 },
-	// 				{ text: "Fight", value: 200 },
-	// 			],
-	// 		},
-	// 	},
-	// 	"New York": {
-	// 		stress: "positive",
-	// 		sport: "negative",
-	// 		wordsByTopic: {
-	// 			stress: [
-	// 				{ text: "Worry", value: 100 },
-	// 				{ text: "Exam", value: 200 },
-	// 			],
-	// 			sport: [
-	// 				{ text: "Win", value: 100 },
-	// 				{ text: "Fight", value: 200 },
-	// 			],
-	// 		},
-	// 	},
-	// };
-
-	// const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-	// 	setSearchTerm(event.target.value);
-	// };
-
-	// const handleSearchSubmit = () => {
-	// 	if (!searchTerm) return;
-
-	// 	// let newHits = 0;
-
-	// 	const sentimentMap: { [state: string]: { positive: number; neutral: number; negative: number } } = {};
-	// 	const wordCounts: { [word: string]: number } = {};
-
-	// 	// Filter posts by search term before processing
-	// 	const filteredPosts = posts.filter((post) => {
-	//         if (post.text.toLowerCase().includes(searchTerm.toLowerCase())) {
-	//             // newHits++; // Increment hit count when search term is found
-	//             return true;
-	//         }
-	//         return false;
-	//     });
-
-	// 	filteredPosts.forEach((post) => {
-	// 		if (!sentimentMap[post.State]) {
-	// 			sentimentMap[post.State] = { positive: 0, neutral: 0, negative: 0 };
-	// 		}
-
-	// 		sentimentMap[post.State].positive += post.positive;
-	// 		sentimentMap[post.State].neutral += post.neutral;
-	// 		sentimentMap[post.State].negative += post.negative;
-
-	// 		// Split text into words and count occurrences
-	// 		const words = post.text.split(/\s+/);
-	// 		words.forEach((word) => {
-	// 			const normalizedWord = word.toLowerCase().replace(/[^a-z0-9]/gi, ''); // Remove punctuation
-	// 			if (normalizedWord) {
-	// 				wordCounts[normalizedWord] = (wordCounts[normalizedWord] || 0) + 1;
-	// 			}
-	// 		});
-	// 	});
 	const handleSearchSubmit = () => {
 		if (!searchTerm) return;
 
@@ -294,26 +170,6 @@ function UI() {
 		setStateSentiments(newStateSentiments);
 	};
 
-	// const handleWordClick = (word: string) => {
-	// 	setSelectedWord(word); // Store the selected word
-	// 	setSelectedTabIndex(1); // Switch to the "Analytics Report" tab
-	// };
-
-	// const sentimentToColor = (sentiment: Sentiment | null) => {
-	// 	switch (sentiment) {
-	// 		case "positive":
-	// 			return "green";
-	// 		case "negative":
-	// 			return "red";
-	// 		case "neutral":
-	// 			return "yellow";
-	// 		case null:
-	// 			return "#9aa2a0"; // lighter gray
-	// 		default:
-	// 			return "#f5f5f5";
-	// 	}
-	// };
-
 	const sentimentToColor = (
 		sentimentData: { positive: number; neutral: number; negative: number } | null
 	) => {
@@ -358,14 +214,6 @@ function UI() {
 
 		const path = d3.geoPath().projection(projection);
 
-		// Replace the existing legend code (around line 94-128) with:
-		// const legendData = [
-		// 	{ label: "Positive", color: "green" },
-		// 	{ label: "Neutral", color: "yellow" },
-		// 	{ label: "Negative", color: "red" },
-		// 	{ label: "Unknown", color: "#9aa2a0"},
-		// ];
-
 		const legendData = [
 			{ label: ">60% Negative", color: "red" },
 			{ label: "40-60% Negative", color: "#E96100" },
@@ -403,7 +251,7 @@ function UI() {
 			.enter()
 			.append("text")
 			.attr("x", size + 5)
-			.attr("y", (d, i) => i * (size + legendSpacing) + size / 2)
+			.attr("y", (_, i) => i * (size + legendSpacing) + size / 2)
 			.text((d) => d.label)
 			.style("font-size", "13px")
 			.attr("alignment-baseline", "middle");
