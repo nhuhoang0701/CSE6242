@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from functools import cache
 from typing import Annotated
 
 from app.core.db import engine
