@@ -321,19 +321,19 @@ function UI() {
 	
 		const { positive, neutral, negative } = sentimentData;
 	
-		// Define thresholds and corresponding colors
-		if (negative > 60) {
-			return "red"; // Red
+		 // Define thresholds and corresponding colors
+		 if (negative > 60) {
+			return "red"; // Very Negative
 		} else if (negative > 40 && negative <= 60) {
-			return "#E96100"; // Orange
-		} else if (neutral > 50) {
-			return "yellow"; // Yellow
+			return "#E96100"; // Negative
+		} else if (neutral > 50 || (positive > 40 && negative > 40)) {
+			return "yellow"; // Neutral
 		} else if (positive > 40 && positive <= 60) {
-			return "#69B34C"; // Light Green
+			return "#69B34C"; // Positive
 		} else if (positive > 60) {
-			return "#009E20"; // Dark Green
+			return "#009E20"; // Very Positive
 		} else {
-			return "#E4AF14"; // Medium Green for balance
+			return "yellow"; // balanced
 		}
 	};
 	
@@ -367,12 +367,11 @@ function UI() {
 		// ];
 
 		const legendData = [
-			{ label: ">60% Negative", color: "red" },
-			{ label: "40-60% Negative", color: "#E96100" },
-			{ label: ">50% Neutral", color: "yellow" },
-			{ label: "Balanced", color: "#E4AF14" },
-			{ label: "40-60% Positive", color: "#69B34C" },
-			{ label: ">60% Positive", color: "#009E20" },
+			{ label: "Highly Negative", color: "red" },
+			{ label: "Negative", color: "#E96100" },
+			{ label: "Neutral / Balanced", color: "yellow" },
+			{ label: "Positive", color: "#69B34C" },
+			{ label: "Highly Positive", color: "#009E20" },
 			{ label: "Unknown", color: "#9aa2a0"}
 		];
 
