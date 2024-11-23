@@ -1,24 +1,16 @@
-import uuid
-from datetime import datetime, timezone
-from typing import Dict, Optional
+from typing import Dict
 
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, SQLModel
 
 
-class CollegeWordList(SQLModel):
-    id: Optional[int] = Field(default=None, primary_key=True)
+class CollegeWordCloud(SQLModel):
     state: str = Field(max_length=100)
     college_name: str = Field(max_length=200)
-    word_list: Optional[Dict] = Field(default=dict)
-    keyword: Optional[str] = Field(max_length=100, default=None)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    words: Dict = Field()
+    keyword: str = Field(max_length=100)
 
 
-class StateWordlist(SQLModel):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str = Field(max_length=100, unique=True)
-    word_list: Optional[Dict] = Field(default=dict)
-    keyword: Optional[str] = Field(max_length=100, default=None)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+class StateWordCloud(SQLModel):
+    state: str = Field(max_length=100, unique=True)
+    words: Dict = Field()
+    keyword: str = Field(max_length=100)

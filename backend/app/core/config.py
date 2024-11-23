@@ -1,14 +1,14 @@
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, List, Literal, Union
 
 from pydantic import AnyUrl, BeforeValidator, HttpUrl, PostgresDsn, computed_field
 from pydantic_core import MultiHostUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-def parse_cors(v: Any) -> list[str] | str:
+def parse_cors(v: Any) -> Union[List[str], str]:
     if isinstance(v, str) and not v.startswith("["):
         return [i.strip() for i in v.split(",")]
-    elif isinstance(v, list | str):
+    elif isinstance(v, (list, str)):
         return v
     raise ValueError(v)
 
@@ -24,19 +24,18 @@ class Settings(BaseSettings):
     FRONTEND_HOST: str = "http://localhost:5173"
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 
-    BACKEND_CORS_ORIGINS: Annotated[list[AnyUrl] | str, BeforeValidator(parse_cors)] = (
-        []
-    )
+    BACKEND_CORS_ORIGINS: Annotated[
+        Union[List[AnyUrl], str], BeforeValidator(parse_cors)
+    ] = []
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def all_cors_origins(self) -> list[str]:
+    def all_cors_origins(self) -> List[str]:
         return [str(origin).rstrip("/") for origin in self.BACKEND_CORS_ORIGINS] + [
             self.FRONTEND_HOST
         ]
 
     PROJECT_NAME: str = "CSE6242"
-    SENTRY_DSN: HttpUrl | None = None
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str = "user"
