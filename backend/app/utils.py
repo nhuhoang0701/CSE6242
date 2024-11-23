@@ -1,13 +1,16 @@
 from typing import List
 
+import pandas as pd
 import polars as pl
+import torch
+import torch.nn.functional as F
 from bertopic import BERTopic
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 
 def get_data() -> pl.DataFrame:
-    # return pd.read_csv("app/roberta2022_combined_states.csv")
     return pl.read_csv(
-        "app/roberta2022_combined_states.csv",
+        "app/filtered_df.csv",
         dtypes={
             "Unnamed: 0": pl.Int64,
             "body": pl.Utf8,
@@ -57,3 +60,26 @@ def topic_model(cleaned_docs: List[str]):
                 prob_by_word[word] = float(prob)
 
     return prob_by_word
+
+
+def predict_emotion(text: str):
+    tokenizer = AutoTokenizer.from_pretrained("ayoubkirouane/BERT-Emotions-Classifier")
+    model = AutoModelForSequenceClassification.from_pretrained(
+        "ayoubkirouane/BERT-Emotions-Classifier"
+    )
+    tokens = tokenizer(text, return_tensors="pt", truncation=False)
+    if tokens["input_ids"].size(1) > 512:
+        print("Input text exceeds token limit. Truncating to fit.")
+        inputs = tokenizer(text[:300], return_tensors="pt", truncation=True)
+    else:
+        inputs = tokens
+
+    # Continue with the usual process
+
+    with torch.no_grad():
+        outputs = model(**inputs)
+
+    logits = outputs.logits
+    probs = F.softmax(logits, dim=-1)
+    predicted_class = torch.argmax(probs, dim=1).item()
+    return predicted_class
