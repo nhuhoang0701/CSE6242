@@ -24,17 +24,7 @@ import Sidebar from "../components/Common/Sidebar";
 import { createFileRoute } from "@tanstack/react-router";
 import { feature } from "topojson-client";
 
-// import Word3DCloud, { Word3DCloudProps } from "../components/WordCloud";
-
 type Sentiment = "positive" | "neutral" | "negative";
-
-// interface StateData {
-// 	[key: string]: {
-// 		stress: Sentiment;
-// 		sport: Sentiment;
-// 		wordsByTopic: { [key in "stress" | "sport"]: Word3DCloudProps };
-// 	};
-// }
 
 interface RedditPost {
 	State: string;
@@ -402,16 +392,6 @@ function UI() {
 					<Button onClick={handleSearchSubmit} size="sm" colorScheme="blue">
 						Submit
 					</Button>
-					{/* <Select
-						size="sm"
-						width="fit-content"
-						value={topic}
-						onChange={(e) => setTopic(e.target.value as "stress" | "sport")}
-					>
-						<option value="stress">Stress</option>
-						<option value="sport">Sport</option>
-					</Select> */}
-
 					<Select
 						size="sm"
 						width="fit-content"
@@ -419,8 +399,6 @@ function UI() {
 						onChange={(e) => setChartType(e.target.value as "filled" | "bar" | "bubble")}
 					>
 						<option value="filled">Filled Color</option>
-						<option value="bar">Bar Chart</option>
-						<option value="bubble">Bubble Chart</option>
 					</Select>
 					{/* Add the search box */}
 				</HStack>
