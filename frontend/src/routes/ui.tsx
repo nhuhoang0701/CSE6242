@@ -1,4 +1,5 @@
 import * as d3 from "d3";
+
 import {
 	Box,
 	Button,
@@ -14,17 +15,16 @@ import {
 	Select,
 	VStack,
 } from "@chakra-ui/react";
-
 import { Feature, Geometry } from "geojson";
-// import Word3DCloud, { Word3DCloudProps } from "../components/WordCloud";
+import { useCallback, useEffect, useRef } from "react";
+
 import AnalyticsReport from "../components/AnalyticsReport";
-
-import { useEffect, useRef, useCallback} from "react";
-
 import React from "react";
 import Sidebar from "../components/Common/Sidebar";
 import { createFileRoute } from "@tanstack/react-router";
 import { feature } from "topojson-client";
+
+// import Word3DCloud, { Word3DCloudProps } from "../components/WordCloud";
 
 type Sentiment = "positive" | "neutral" | "negative";
 
@@ -84,32 +84,34 @@ function UI() {
 	const [searchTerm, setSearchTerm] = React.useState<string>(""); // State for search term
 	const [posts, setPosts] = React.useState<RedditPost[]>([]); // State for storing CSV data
 	const [stateSentiments, setStateSentiments] = React.useState<{ [state: string]: Sentiment }>({});
-	const [sentimentMap, setSentimentMap] = React.useState<{ [state: string]: { positive: number; neutral: number; negative: number } }>({});
+	const [sentimentMap, setSentimentMap] = React.useState<{
+		[state: string]: { positive: number; neutral: number; negative: number };
+	}>({});
 	const [selectedWord, setSelectedWord] = React.useState<string>(""); // State for selected word
 	// const [hits, setHits] = React.useState(0);
-	
+
 	const loadDataForYear = (selectedYear: string) => {
-		d3.csv(`dataset/data_${selectedYear}.csv`).then((data) => {
-			console.log(`Raw CSV data for ${selectedYear}:`, data);
-			const formattedData = data.map((row: any) => ({
-				State: row.State ? row.State.trim() : "",
-				text: row.preprocessed_text ? row.preprocessed_text.trim() : "",
-				positive: row.emo_pred_pos ? parseFloat(row.emo_pred_pos) : 0,
-				neutral: row.emo_pred_neu ? parseFloat(row.emo_pred_neu) : 0,
-				negative: row.emo_pred_neg ? parseFloat(row.emo_pred_neg) : 0,
-			}));
-			setPosts(formattedData);
-			console.log("Loaded posts:", formattedData);
-		}).catch((error) => {
-			console.error("Error loading CSV data:", error);
-		});
+		d3.csv(`dataset/data_${selectedYear}.csv`)
+			.then((data) => {
+				console.log(`Raw CSV data for ${selectedYear}:`, data);
+				const formattedData = data.map((row: any) => ({
+					State: row.State ? row.State.trim() : "",
+					text: row.preprocessed_text ? row.preprocessed_text.trim() : "",
+					positive: row.emo_pred_pos ? parseFloat(row.emo_pred_pos) : 0,
+					neutral: row.emo_pred_neu ? parseFloat(row.emo_pred_neu) : 0,
+					negative: row.emo_pred_neg ? parseFloat(row.emo_pred_neg) : 0,
+				}));
+				setPosts(formattedData);
+				console.log("Loaded posts:", formattedData);
+			})
+			.catch((error) => {
+				console.error("Error loading CSV data:", error);
+			});
 	};
-	
+
 	useEffect(() => {
 		loadDataForYear(year);
 	}, [year]);
-
-
 
 	// useEffect(() => {
 	// 	d3.csv("dataset/ASU_2019_sampled.csv").then((data) => {
@@ -124,13 +126,12 @@ function UI() {
 	// 		setPosts(formattedData);
 	// 		console.log("Loaded posts:", formattedData);
 	// 	}).catch((error) => {
-    //     console.error("Error loading CSV data:", error); // Log any errors in loading
-    // });
+	//     console.error("Error loading CSV data:", error); // Log any errors in loading
+	// });
 	// }, []);
 
 	// const sentimentLevel = {
 
-		
 	// 	Arizona: {
 	// 		stress: "positive",
 	// 		sport: "positive",
@@ -184,28 +185,28 @@ function UI() {
 	// 	if (!searchTerm) return;
 
 	// 	// let newHits = 0;
-	
+
 	// 	const sentimentMap: { [state: string]: { positive: number; neutral: number; negative: number } } = {};
 	// 	const wordCounts: { [word: string]: number } = {};
-	
+
 	// 	// Filter posts by search term before processing
 	// 	const filteredPosts = posts.filter((post) => {
-    //         if (post.text.toLowerCase().includes(searchTerm.toLowerCase())) {
-    //             // newHits++; // Increment hit count when search term is found
-    //             return true;
-    //         }
-    //         return false;
-    //     });
-	
+	//         if (post.text.toLowerCase().includes(searchTerm.toLowerCase())) {
+	//             // newHits++; // Increment hit count when search term is found
+	//             return true;
+	//         }
+	//         return false;
+	//     });
+
 	// 	filteredPosts.forEach((post) => {
 	// 		if (!sentimentMap[post.State]) {
 	// 			sentimentMap[post.State] = { positive: 0, neutral: 0, negative: 0 };
 	// 		}
-	
+
 	// 		sentimentMap[post.State].positive += post.positive;
 	// 		sentimentMap[post.State].neutral += post.neutral;
 	// 		sentimentMap[post.State].negative += post.negative;
-	
+
 	// 		// Split text into words and count occurrences
 	// 		const words = post.text.split(/\s+/);
 	// 		words.forEach((word) => {
@@ -218,7 +219,9 @@ function UI() {
 	const handleSearchSubmit = () => {
 		if (!searchTerm) return;
 
-		const newSentimentMap: { [state: string]: { positive: number; neutral: number; negative: number } } = {};
+		const newSentimentMap: {
+			[state: string]: { positive: number; neutral: number; negative: number };
+		} = {};
 		const wordCounts: { [word: string]: number } = {};
 
 		const filteredPosts = posts.filter(
@@ -228,16 +231,16 @@ function UI() {
 		filteredPosts.forEach((post) => {
 			// Ensure State and text exist
 			if (!post.State || !post.text) return;
-	
+
 			// Initialize sentiment map for the state
 			if (!newSentimentMap[post.State]) {
 				newSentimentMap[post.State] = { positive: 0, neutral: 0, negative: 0 };
 			}
-	
+
 			newSentimentMap[post.State].positive += post.positive || 0;
 			newSentimentMap[post.State].neutral += post.neutral || 0;
 			newSentimentMap[post.State].negative += post.negative || 0;
-	
+
 			// Count word occurrences
 			const words = post.text.split(/\s+/);
 			words.forEach((word) => {
@@ -251,20 +254,20 @@ function UI() {
 		Object.keys(newSentimentMap).forEach((state) => {
 			const sentiment = newSentimentMap[state];
 			const total = sentiment.positive + sentiment.neutral + sentiment.negative;
-	
+
 			if (total > 0) {
-				sentiment.positive = ((sentiment.positive / total) * 100);
-				sentiment.neutral = ((sentiment.neutral / total) * 100);
-				sentiment.negative = ((sentiment.negative / total) * 100);
+				sentiment.positive = (sentiment.positive / total) * 100;
+				sentiment.neutral = (sentiment.neutral / total) * 100;
+				sentiment.negative = (sentiment.negative / total) * 100;
 			}
 		});
 
 		setSentimentMap(newSentimentMap);
-	
+
 		// Log word counts and sentiment map only for filtered results
 		console.log("Filtered Word counts:", wordCounts);
 		console.log("Filtered Sentiment map:", sentimentMap);
-	
+
 		// Convert word counts into the format needed for Word3DCloud
 		const formattedWords = Object.keys(wordCounts).map((word) => ({
 			text: word,
@@ -273,7 +276,7 @@ function UI() {
 
 		// setHits(newHits);
 		setWordCloudData(formattedWords);
-	
+
 		// Determine the maximum sentiment for each state
 		const newStateSentiments: { [state: string]: Sentiment } = {};
 		Object.keys(newSentimentMap).forEach((state) => {
@@ -286,13 +289,11 @@ function UI() {
 			}
 			newStateSentiments[state] = maxSentiment;
 		});
-	
+
 		// Update state sentiments
 		setStateSentiments(newStateSentiments);
 	};
 
-
-	
 	// const handleWordClick = (word: string) => {
 	// 	setSelectedWord(word); // Store the selected word
 	// 	setSelectedTabIndex(1); // Switch to the "Analytics Report" tab
@@ -312,15 +313,16 @@ function UI() {
 	// 			return "#f5f5f5";
 	// 	}
 	// };
-	
-	
-	const sentimentToColor = (sentimentData: { positive: number; neutral: number; negative: number } | null) => {
+
+	const sentimentToColor = (
+		sentimentData: { positive: number; neutral: number; negative: number } | null
+	) => {
 		if (!sentimentData) {
 			return "#9aa2a0"; // Default gray color for no data
 		}
-	
+
 		const { positive, neutral, negative } = sentimentData;
-	
+
 		// Define thresholds and corresponding colors
 		if (negative > 60) {
 			return "red"; // Red
@@ -336,14 +338,12 @@ function UI() {
 			return "#E4AF14"; // Medium Green for balance
 		}
 	};
-	
-	
 
 	useEffect(() => {
 		if (!svgRef.current || !legendRef.current) return;
 
 		const svg = d3.select(svgRef.current).attr("viewBox", [0, 0, width, height]);
-		const legend = d3.select(legendRef.current).style("width","60px");
+		const legend = d3.select(legendRef.current).style("width", "60px");
 		const tooltip = d3.select(tooltipRef.current);
 
 		// Clear previous content
@@ -355,7 +355,7 @@ function UI() {
 			.geoAlbersUsa()
 			.scale(1100)
 			.translate([width / 2, height / 2]);
-		
+
 		const path = d3.geoPath().projection(projection);
 
 		// Replace the existing legend code (around line 94-128) with:
@@ -373,7 +373,7 @@ function UI() {
 			{ label: "Balanced", color: "#E4AF14" },
 			{ label: "40-60% Positive", color: "#69B34C" },
 			{ label: ">60% Positive", color: "#009E20" },
-			{ label: "Unknown", color: "#9aa2a0"}
+			{ label: "Unknown", color: "#9aa2a0" },
 		];
 
 		const size = 20;
@@ -488,85 +488,24 @@ function UI() {
 								`<strong>${stateId}</strong><br>Positive: ${sentimentData.positive.toFixed(1)} %<br>Neutral: ${sentimentData.neutral.toFixed(1)} %<br>Negative: ${sentimentData.negative.toFixed(1)} %`
 							)
 							.style("left", `${event.clientX - svgBounds.left + 50}px`)
-            				.style("top", `${event.clientY - svgBounds.top + 10}px`);
+							.style("top", `${event.clientY - svgBounds.top + 10}px`);
 					}
 				})
 				.on("mousemove", function (event) {
 					const svgBounds = svgRef.current.getBoundingClientRect();
 					// Update tooltip position as the mouse moves
 					tooltip
-						.style("left", `${event.clientX - svgBounds.left +50}px`)
+						.style("left", `${event.clientX - svgBounds.left + 50}px`)
 						.style("top", `${event.clientY - svgBounds.top + 10}px`);
 				})
 				.on("mouseout", function () {
 					// Hide tooltip when mouse leaves the state
 					tooltip.style("opacity", 0);
 				});
-
-			// Add bar chart
-			// if (chartType === "bar") {
-			// 	svg
-			// 		.selectAll("rect")
-			// 		.data((states as any).features)
-			// 		.enter()
-			// 		.append("rect")
-			// 		.attr("x", function (d: any) {
-			// 			const feature = d as unknown as Feature<Geometry>;
-			// 			const stateId = (feature.properties as any).name;
-			// 			return path.centroid(d)[0] - 20;
-			// 		})
-			// 		.attr("y", function (d: any) {
-			// 			const feature = d as unknown as Feature<Geometry>;
-			// 			const stateId = (feature.properties as any).name;
-			// 			const stateStressLevel = sentimentLevel[stateId] || 0;
-			// 			return path.centroid(d)[1] - stateStressLevel * 10;
-			// 		})
-			// 		.attr("width", 40)
-			// 		.attr("height", function (d) {
-			// 			const feature = d as unknown as Feature<Geometry>;
-			// 			const stateId = (feature.properties as any).name;
-			// 			const stateStressLevel = sentimentLevel[stateId] || 0;
-			// 			return stateStressLevel * 10;
-			// 		})
-			// 		.style("fill", function (d) {
-			// 			const feature = d as unknown as Feature<Geometry>;
-			// 			const stateId = (feature.properties as any).name;
-			// 			const stateStressLevel = sentimentLevel[stateId] || 0;
-			// 			return colorScale(stateStressLevel);
-			// 		});
-			// }
-
-			// Add bubble chart
-			// if (chartType === "bubble") {
-			// 	svg
-			// 		.selectAll("circle")
-			// 		.data((states as any).features)
-			// 		.enter()
-			// 		.append("circle")
-			// 		.attr("cx", function (d: any) {
-			// 			return path.centroid(d)[0];
-			// 		})
-			// 		.attr("cy", function (d: any) {
-			// 			return path.centroid(d)[1];
-			// 		})
-			// 		.attr("r", function (d) {
-			// 			const feature = d as unknown as Feature<Geometry>;
-			// 			const stateId = (feature.properties as any).name;
-			// 			const stateStressLevel = sentimentLevel[stateId] || 0;
-			// 			return stateStressLevel * 5; // Adjust the multiplier as needed
-			// 		})
-			// 		.style("fill", function (d) {
-			// 			const feature = d as unknown as Feature<Geometry>;
-			// 			const stateId = (feature.properties as any).name;
-			// 			const stateStressLevel = sentimentLevel[stateId] || 0;
-			// 			return colorScale(stateStressLevel);
-			// 		});
-			// }
 		});
 	}, [chartType, topic, isZoomed, stateSentiments, sentimentMap]);
 
 	// const handleDebouncedSearch = React.useCallback(debounce(handleSearchSubmit, 300), [searchTerm]);
-
 
 	return (
 		<Flex direction={{ base: "column", md: "row" }} w="100vw" h="100vh" overflow="hidden">
@@ -625,8 +564,6 @@ function UI() {
 						<option value="sport">Sport</option>
 					</Select> */}
 
-
-
 					<Select
 						size="sm"
 						width="fit-content"
@@ -638,8 +575,6 @@ function UI() {
 						<option value="bubble">Bubble Chart</option>
 					</Select>
 					{/* Add the search box */}
-					
-					
 				</HStack>
 
 				<svg ref={svgRef} style={{ width: "100%", height: "100%", overflow: "hidden" }}></svg>
@@ -673,7 +608,7 @@ function UI() {
 						color: "#333",
 					}}
 				></div>
-				
+
 				<Modal
 					isOpen={!!selectedState}
 					onClose={() => setSelectedState(null)}
@@ -684,15 +619,15 @@ function UI() {
 						<ModalHeader>{selectedState}</ModalHeader>
 						<ModalCloseButton />
 						<ModalBody>
-						<AnalyticsReport 
-							word={searchTerm} 
-							wordCloudData={wordCloudData}
-							onWordSelect={(newWord) => {
-								console.log("Word selected:", newWord);  // Debug log
-								setSelectedWord(newWord);
-							}}
-							posts={posts.map(post => post.text)} 
-							/> 
+							<AnalyticsReport
+								word={searchTerm}
+								wordCloudData={wordCloudData}
+								onWordSelect={(newWord) => {
+									console.log("Word selected:", newWord); // Debug log
+									setSelectedWord(newWord);
+								}}
+								posts={posts.map((post) => post.text)}
+							/>
 						</ModalBody>
 					</ModalContent>
 				</Modal>
