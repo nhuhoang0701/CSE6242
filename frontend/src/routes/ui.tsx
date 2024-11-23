@@ -22,7 +22,7 @@ import {
 } from "@chakra-ui/react";
 
 import { Feature, Geometry } from "geojson";
-import Word3DCloud, { Word3DCloudProps } from "../components/WordCloud";
+// import Word3DCloud, { Word3DCloudProps } from "../components/WordCloud";
 import AnalyticsReport from "../components/AnalyticsReport";
 
 import { useEffect, useRef, useCallback} from "react";
@@ -114,6 +114,8 @@ function UI() {
 	useEffect(() => {
 		loadDataForYear(year);
 	}, [year]);
+
+
 
 	// useEffect(() => {
 	// 	d3.csv("dataset/ASU_2019_sampled.csv").then((data) => {
@@ -225,23 +227,27 @@ function UI() {
 		const newSentimentMap: { [state: string]: { positive: number; neutral: number; negative: number } } = {};
 		const wordCounts: { [word: string]: number } = {};
 
-		// Filter posts by search term before processing
-		const filteredPosts = posts.filter((post) => {
-			return post.text.toLowerCase().includes(searchTerm.toLowerCase());
-		});
+		const filteredPosts = posts.filter(
+			(post) => post.text && post.text.toLowerCase().includes(searchTerm.toLowerCase())
+		);
 
 		filteredPosts.forEach((post) => {
+			// Ensure State and text exist
+			if (!post.State || !post.text) return;
+	
+			// Initialize sentiment map for the state
 			if (!newSentimentMap[post.State]) {
 				newSentimentMap[post.State] = { positive: 0, neutral: 0, negative: 0 };
 			}
-
-			newSentimentMap[post.State].positive += post.positive;
-			newSentimentMap[post.State].neutral += post.neutral;
-			newSentimentMap[post.State].negative += post.negative;
-
+	
+			newSentimentMap[post.State].positive += post.positive || 0;
+			newSentimentMap[post.State].neutral += post.neutral || 0;
+			newSentimentMap[post.State].negative += post.negative || 0;
+	
+			// Count word occurrences
 			const words = post.text.split(/\s+/);
 			words.forEach((word) => {
-				const normalizedWord = word.toLowerCase().replace(/[^a-z0-9]/gi, '');
+				const normalizedWord = word.toLowerCase().replace(/[^a-z0-9]/gi, "");
 				if (normalizedWord) {
 					wordCounts[normalizedWord] = (wordCounts[normalizedWord] || 0) + 1;
 				}
@@ -290,7 +296,8 @@ function UI() {
 		// Update state sentiments
 		setStateSentiments(newStateSentiments);
 	};
-	
+
+
 	
 	// const handleWordClick = (word: string) => {
 	// 	setSelectedWord(word); // Store the selected word
@@ -647,26 +654,15 @@ function UI() {
 						<ModalHeader>{selectedState}</ModalHeader>
 						<ModalCloseButton />
 						<ModalBody>
-							<Tabs defaultIndex={0} variant="enclosed">
-								<TabList>
-									<Tab>Word Cloud</Tab>
-									<Tab>Analytics Report</Tab>
-								</TabList>
-								<TabPanels>
-									<TabPanel>
-										<Word3DCloud
-											words={wordCloudData}
-											onWordSelect={(word) => {
-												setSelectedWord(word);
-												// handleDebouncedSearch()
-											}}
-										></Word3DCloud>
-									</TabPanel>
-									<TabPanel>
-										<AnalyticsReport word={selectedWord} /> {/* Render AnalyticsReport */}
-									</TabPanel>
-								</TabPanels>
-							</Tabs>
+						<AnalyticsReport 
+							word={searchTerm} 
+							wordCloudData={wordCloudData}
+							onWordSelect={(newWord) => {
+								console.log("Word selected:", newWord);  // Debug log
+								setSelectedWord(newWord);
+							}}
+							posts={posts.map(post => post.text)} 
+							/> 
 						</ModalBody>
 					</ModalContent>
 				</Modal>
