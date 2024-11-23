@@ -1,4 +1,3 @@
-
 import * as d3 from "d3";
 import {
 	Box,
@@ -13,11 +12,6 @@ import {
 	ModalHeader,
 	ModalOverlay,
 	Select,
-	Tab,
-	TabList,
-	TabPanel,
-	TabPanels,
-	Tabs,
 	VStack,
 } from "@chakra-ui/react";
 
@@ -259,9 +253,9 @@ function UI() {
 			const total = sentiment.positive + sentiment.neutral + sentiment.negative;
 	
 			if (total > 0) {
-				sentiment.positive /= total;
-				sentiment.neutral /= total;
-				sentiment.negative /= total;
+				sentiment.positive = ((sentiment.positive / total) * 100);
+				sentiment.neutral = ((sentiment.neutral / total) * 100);
+				sentiment.negative = ((sentiment.negative / total) * 100);
 			}
 		});
 
@@ -304,25 +298,52 @@ function UI() {
 	// 	setSelectedTabIndex(1); // Switch to the "Analytics Report" tab
 	// };
 
-	const sentimentToColor = (sentiment: Sentiment | null) => {
-		switch (sentiment) {
-			case "positive":
-				return "green";
-			case "negative":
-				return "red";
-			case "neutral":
-				return "gray";
-			default:
-				return "gray";
+	// const sentimentToColor = (sentiment: Sentiment | null) => {
+	// 	switch (sentiment) {
+	// 		case "positive":
+	// 			return "green";
+	// 		case "negative":
+	// 			return "red";
+	// 		case "neutral":
+	// 			return "yellow";
+	// 		case null:
+	// 			return "#9aa2a0"; // lighter gray
+	// 		default:
+	// 			return "#f5f5f5";
+	// 	}
+	// };
+	
+	
+	const sentimentToColor = (sentimentData: { positive: number; neutral: number; negative: number } | null) => {
+		if (!sentimentData) {
+			return "#9aa2a0"; // Default gray color for no data
+		}
+	
+		const { positive, neutral, negative } = sentimentData;
+	
+		// Define thresholds and corresponding colors
+		if (negative > 60) {
+			return "red"; // Red
+		} else if (negative > 40 && negative <= 60) {
+			return "#E96100"; // Orange
+		} else if (neutral > 50) {
+			return "yellow"; // Yellow
+		} else if (positive > 40 && positive <= 60) {
+			return "#69B34C"; // Light Green
+		} else if (positive > 60) {
+			return "#009E20"; // Dark Green
+		} else {
+			return "#E4AF14"; // Medium Green for balance
 		}
 	};
 	
 	
+
 	useEffect(() => {
 		if (!svgRef.current || !legendRef.current) return;
 
 		const svg = d3.select(svgRef.current).attr("viewBox", [0, 0, width, height]);
-		const legend = d3.select(legendRef.current);
+		const legend = d3.select(legendRef.current).style("width","60px");
 		const tooltip = d3.select(tooltipRef.current);
 
 		// Clear previous content
@@ -338,11 +359,21 @@ function UI() {
 		const path = d3.geoPath().projection(projection);
 
 		// Replace the existing legend code (around line 94-128) with:
+		// const legendData = [
+		// 	{ label: "Positive", color: "green" },
+		// 	{ label: "Neutral", color: "yellow" },
+		// 	{ label: "Negative", color: "red" },
+		// 	{ label: "Unknown", color: "#9aa2a0"},
+		// ];
+
 		const legendData = [
-			{ label: "Positive", color: "green" },
-			{ label: "Neutral", color: "gray" },
-			{ label: "Negative", color: "red" },
-			{ label: "Unknown", color: "#f5f5f5" },
+			{ label: ">60% Negative", color: "red" },
+			{ label: "40-60% Negative", color: "#E96100" },
+			{ label: ">50% Neutral", color: "yellow" },
+			{ label: "Balanced", color: "#E4AF14" },
+			{ label: "40-60% Positive", color: "#69B34C" },
+			{ label: ">60% Positive", color: "#009E20" },
+			{ label: "Unknown", color: "#9aa2a0"}
 		];
 
 		const size = 20;
@@ -350,7 +381,7 @@ function UI() {
 
 		const legendGroup = legend
 			.append("svg")
-			.attr("width", 120)
+			.attr("width", 150)
 			.attr("height", (size + legendSpacing) * legendData.length);
 
 		// Add squares
@@ -371,9 +402,10 @@ function UI() {
 			.data(legendData)
 			.enter()
 			.append("text")
-			.attr("x", size + legendSpacing)
+			.attr("x", size + 5)
 			.attr("y", (d, i) => i * (size + legendSpacing) + size / 2)
 			.text((d) => d.label)
+			.style("font-size", "13px")
 			.attr("alignment-baseline", "middle");
 
 		// Load US map data
@@ -401,10 +433,8 @@ function UI() {
 				.style("fill", function (d) {
 					const feature = d as unknown as Feature<Geometry>;
 					const stateId = (feature.properties as any).name;
-					const sentiment = stateSentiments[stateId] ?? null;
-					return chartType === "filled" && sentiment != null
-						? sentimentToColor(sentiment)
-						: "#f5f5f5";
+					const sentiment = sentimentMap[stateId] ?? null;
+					return chartType === "filled" ? sentimentToColor(sentiment) : "#f5f5f5";
 				})
 				.style("stroke", "#000")
 				.style("stroke-width", "1")
@@ -455,7 +485,7 @@ function UI() {
 						tooltip
 							.style("opacity", 1)
 							.html(
-								`<strong>${stateId}</strong><br>Positive: ${sentimentData.positive.toFixed(2)}<br>Neutral: ${sentimentData.neutral.toFixed(2)}<br>Negative: ${sentimentData.negative.toFixed(2)}`
+								`<strong>${stateId}</strong><br>Positive: ${sentimentData.positive.toFixed(1)} %<br>Neutral: ${sentimentData.neutral.toFixed(1)} %<br>Negative: ${sentimentData.negative.toFixed(1)} %`
 							)
 							.style("left", `${event.clientX - svgBounds.left + 50}px`)
             				.style("top", `${event.clientY - svgBounds.top + 10}px`);
