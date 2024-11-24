@@ -16,7 +16,6 @@ import {
 	VStack,
 } from "@chakra-ui/react";
 import { Feature, Geometry } from "geojson";
-import { Sentiment, SentimentsService } from "../client";
 import { useEffect, useRef } from "react";
 
 import AnalyticsReport from "../components/AnalyticsReport";
@@ -24,7 +23,17 @@ import React from "react";
 import Sidebar from "../components/Common/Sidebar";
 import { createFileRoute } from "@tanstack/react-router";
 import { feature } from "topojson-client";
-import { useQuery } from "@tanstack/react-query";
+
+type Sentiment = "positive" | "neutral" | "negative";
+
+interface RedditPost {
+	State: string;
+	year: number;
+	text: string;
+	positive: number;
+	neutral: number;
+	negative: number;
+}
 
 export const Route = createFileRoute("/ui")({
 	component: UI,
@@ -39,134 +48,143 @@ function UI() {
 	const [chartType, setChartType] = React.useState<"filled" | "bar" | "bubble">("filled");
 	const [year, setYear] = React.useState("2019"); // State for selected year
 	const [topic, setTopic] = React.useState<"stress" | "sport">("stress");
-	const [wordCloudData, setWordCloudData] = React.useState<{ text: string; value: number }[]>([]);
+	// const [wordCloudData, setWordCloudData] = React.useState<{ text: string; value: number }[]>([]);
 	const [isZoomed, setIsZoomed] = React.useState(false);
 	const [selectedState, setSelectedState] = React.useState<string | null>(null);
-	const [input, setInput] = React.useState<string>(""); // State for search term
 	const [searchTerm, setSearchTerm] = React.useState<string>(""); // State for search term
-	const [posts, setPosts] = React.useState<Post[]>([]); // State for storing CSV data
+	const [posts, setPosts] = React.useState<RedditPost[]>([]); // State for storing CSV data
+	const [stateSentiments, setStateSentiments] = React.useState<{ [state: string]: Sentiment }>({});
+	const [sentimentMap, setSentimentMap] = React.useState<{
+		[state: string]: { positive: number; neutral: number; negative: number };
+	}>({});
 	const [selectedWord, setSelectedWord] = React.useState<string>(""); // State for selected word
-	const {
-		isPending: isSentimentLoading,
-		isError: isSentimentError,
-		data: sentimentByState,
-		error: sentimentError,
-	} = useQuery({
-		queryKey: ["sentiments", year, searchTerm],
-		queryFn: () => {
-			return SentimentsService.getSentiments({
-				keyword: searchTerm,
-				year: parseInt(year),
+	// const [hits, setHits] = React.useState(0);
+
+	const loadDataForYear = (selectedYear: string) => {
+		d3.csv(`dataset/data_${selectedYear}.csv`)
+			.then((data) => {
+				console.log(`Raw CSV data for ${selectedYear}:`, data);
+				const posts = data.map((row: any) => ({
+					State: row.State ? row.State.trim() : "",
+					text: row.preprocessed_text ? row.preprocessed_text.trim() : "",
+					year: row.Year ? parseInt(row.Year) : 0,
+					positive: row.emo_pred_pos ? parseFloat(row.emo_pred_pos) : 0,
+					neutral: row.emo_pred_neu ? parseFloat(row.emo_pred_neu) : 0,
+					negative: row.emo_pred_neg ? parseFloat(row.emo_pred_neg) : 0,
+				}));
+				setPosts(posts);
+			})
+			.catch((error) => {
+				console.error("Error loading CSV data:", error);
 			});
-		},
-	});
+	};
+
+	useEffect(() => {
+		loadDataForYear(year);
+	}, [year]);
 
 	const handleSearchSubmit = () => {
-		setSearchTerm(input);
+		if (!searchTerm) return;
 
-		console.log(sentimentByState);
+		const newSentimentMap: {
+			[state: string]: { positive: number; neutral: number; negative: number };
+		} = {};
+		const wordCounts: { [word: string]: number } = {};
 
-		// const sentimentByState: {
-		// 	[state: string]: { positive: number; neutral: number; negative: number };
-		// } = {};
-		// const wordCounts: { [word: string]: number } = {};
+		const filteredPosts = posts.filter(
+			(post) => post.text && post.text.toLowerCase().includes(searchTerm.toLowerCase())
+		);
 
-		// const filteredPosts = posts.filter(
-		// 	(post) => post.text && post.text.toLowerCase().includes(searchTerm.toLowerCase())
-		// );
+		filteredPosts.forEach((post) => {
+			// Ensure State and text exist
+			if (!post.State || !post.text) return;
 
-		// filteredPosts.forEach((post) => {
-		// 	// Ensure state and text exist
-		// 	if (!post.state || !post.text) return;
+			// Initialize sentiment map for the state
+			if (!newSentimentMap[post.State]) {
+				newSentimentMap[post.State] = { positive: 0, neutral: 0, negative: 0 };
+			}
 
-		// 	// Initialize sentiment map for the state
-		// 	if (!sentimentByState[post.state]) {
-		// 		sentimentByState[post.state] = { positive: 0, neutral: 0, negative: 0 };
-		// 	}
+			newSentimentMap[post.State].positive += post.positive || 0;
+			newSentimentMap[post.State].neutral += post.neutral || 0;
+			newSentimentMap[post.State].negative += post.negative || 0;
 
-		// 	sentimentByState[post.state].positive += post.sentiment?.positive || 0;
-		// 	sentimentByState[post.state].neutral += post.sentiment?.neutral || 0;
-		// 	sentimentByState[post.state].negative += post.sentiment?.negative || 0;
+			// Count word occurrences
+			const words = post.text.split(/\s+/);
+			words.forEach((word) => {
+				const normalizedWord = word.toLowerCase().replace(/[^a-z0-9]/gi, "");
+				if (normalizedWord) {
+					wordCounts[normalizedWord] = (wordCounts[normalizedWord] || 0) + 1;
+				}
+			});
+		});
 
-		// 	// Count word occurrences
-		// 	const words = post.text.split(/\s+/);
-		// 	words.forEach((word) => {
-		// 		const normalizedWord = word.toLowerCase().replace(/[^a-z0-9]/gi, "");
-		// 		if (normalizedWord) {
-		// 			wordCounts[normalizedWord] = (wordCounts[normalizedWord] || 0) + 1;
-		// 		}
-		// 	});
-		// });
+		Object.keys(newSentimentMap).forEach((state) => {
+			const sentiment = newSentimentMap[state];
+			const total = sentiment.positive + sentiment.neutral + sentiment.negative;
 
-		// Object.keys(sentimentByState).forEach((state) => {
-		// 	const sentiment = sentimentByState[state];
-		// 	const total = sentiment.positive + sentiment.neutral + sentiment.negative;
+			if (total > 0) {
+				sentiment.positive = (sentiment.positive / total) * 100;
+				sentiment.neutral = (sentiment.neutral / total) * 100;
+				sentiment.negative = (sentiment.negative / total) * 100;
+			}
+		});
 
-		// 	if (total > 0) {
-		// 		sentiment.positive = (sentiment.positive / total) * 100;
-		// 		sentiment.neutral = (sentiment.neutral / total) * 100;
-		// 		sentiment.negative = (sentiment.negative / total) * 100;
-		// 	}
-		// });
-
+		setSentimentMap(newSentimentMap);
 
 		// Log word counts and sentiment map only for filtered results
-		// console.log("Filtered Word counts:", wordCounts);
-		// console.log("Filtered Sentiment map:", sentimentMap);
 
-		// // Convert word counts into the format needed for Word3DCloud
+		// Convert word counts into the format needed for Word3DCloud
 		// const formattedWords = Object.keys(wordCounts).map((word) => ({
 		// 	text: word,
 		// 	value: wordCounts[word],
 		// }));
 
-		// setHits(newHits);
 		// setWordCloudData(formattedWords);
 
-		// // Determine the maximum sentiment for each state
-		// const newStateSentiments: { [state: string]: Sentiment } = {};
-		// Object.keys(sentimentByState).forEach((state) => {
-		// 	const { positive, neutral, negative } = sentimentByState[state];
-		// 	let maxSentiment: Sentiment = "neutral";
-		// 	if (positive >= neutral && positive >= negative) {
-		// 		maxSentiment = "positive";
-		// 	} else if (negative >= positive && negative >= neutral) {
-		// 		maxSentiment = "negative";
-		// 	}
-		// 	newStateSentiments[state] = maxSentiment;
-		// });
+		// Determine the maximum sentiment for each state
+		const newStateSentiments: { [state: string]: Sentiment } = {};
+		Object.keys(newSentimentMap).forEach((state) => {
+			const { positive, neutral, negative } = newSentimentMap[state];
+			let maxSentiment: Sentiment = "neutral";
+			if (positive >= neutral && positive >= negative) {
+				maxSentiment = "positive";
+			} else if (negative >= positive && negative >= neutral) {
+				maxSentiment = "negative";
+			}
+			newStateSentiments[state] = maxSentiment;
+		});
 
 		// Update state sentiments
-		// setStateSentiments(newStateSentiments);
+		setStateSentiments(newStateSentiments);
 	};
 
-	const sentimentToColor = (sentiment: Sentiment | null) => {
-		if (!sentiment) {
+	const sentimentToColor = (
+		sentimentData: { positive: number; neutral: number; negative: number } | null
+	) => {
+		if (!sentimentData) {
 			return "#9aa2a0"; // Default gray color for no data
 		}
 
-		const { positive, neutral, negative } = sentiment;
+		const { positive, neutral, negative } = sentimentData;
 
 		// Define thresholds and corresponding colors
 		if (negative > 60) {
-			return "red"; // Red
+			return "red"; // Very Negative
 		} else if (negative > 40 && negative <= 60) {
-			return "#E96100"; // Orange
-		} else if (neutral > 50) {
-			return "yellow"; // Yellow
+			return "#E96100"; // Negative
+		} else if (neutral > 50 || (positive > 40 && negative > 40)) {
+			return "yellow"; // Neutral
 		} else if (positive > 40 && positive <= 60) {
-			return "#69B34C"; // Light Green
+			return "#69B34C"; // Positive
 		} else if (positive > 60) {
-			return "#009E20"; // Dark Green
+			return "#009E20"; // Very Positive
 		} else {
-			return "#E4AF14"; // Medium Green for balance
+			return "yellow"; // balanced
 		}
 	};
 
 	useEffect(() => {
 		if (!svgRef.current || !legendRef.current) return;
-		// if (isSentimentLoading && searchTerm) return;
-		// if (isSentimentError && searchTerm) return;
 
 		const svg = d3.select(svgRef.current).attr("viewBox", [0, 0, width, height]);
 		const legend = d3.select(legendRef.current).style("width", "60px");
@@ -185,12 +203,11 @@ function UI() {
 		const path = d3.geoPath().projection(projection);
 
 		const legendData = [
-			{ label: "Very Negative", color: "red" },
+			{ label: "Highly Negative", color: "red" },
 			{ label: "Negative", color: "#E96100" },
-			{ label: ">50% Neutral", color: "yellow" },
-			{ label: "Balanced", color: "#E4AF14" },
+			{ label: "Neutral / Balanced", color: "yellow" },
 			{ label: "Positive", color: "#69B34C" },
-			{ label: "Very Positive", color: "#009E20" },
+			{ label: "Highly Positive", color: "#009E20" },
 			{ label: "Unknown", color: "#9aa2a0" },
 		];
 
@@ -221,7 +238,7 @@ function UI() {
 			.enter()
 			.append("text")
 			.attr("x", size + 5)
-			.attr("y", (_, i) => i * (size + legendSpacing) + size / 2)
+			.attr("y", (d, i) => i * (size + legendSpacing) + size / 2)
 			.text((d) => d.label)
 			.style("font-size", "13px")
 			.attr("alignment-baseline", "middle");
@@ -251,11 +268,7 @@ function UI() {
 				.style("fill", function (d) {
 					const feature = d as unknown as Feature<Geometry>;
 					const stateId = (feature.properties as any).name;
-					const sentiment = sentimentByState!![stateId] ?? null;
-					sentiment.negative = Math.round(sentiment.negative * 100);
-					sentiment.positive = Math.round(sentiment.positive * 100);
-					sentiment.neutral = Math.round(sentiment.neutral * 100);
-
+					const sentiment = sentimentMap[stateId] ?? null;
 					return chartType === "filled" ? sentimentToColor(sentiment) : "#f5f5f5";
 				})
 				.style("stroke", "#000")
@@ -299,19 +312,15 @@ function UI() {
 				})
 				.on("mouseover", function (event, d) {
 					const stateId = d.properties.name;
-					const sentiment = sentimentByState!![stateId];
-					sentiment.negative = Math.round(sentiment.negative * 100);
-					sentiment.positive = Math.round(sentiment.positive * 100);
-					sentiment.neutral = Math.round(sentiment.neutral * 100);
-
+					const sentimentData = sentimentMap[stateId];
 					const svgBounds = svgRef.current.getBoundingClientRect();
 
 					// Show tooltip with sentiment values
-					if (sentiment) {
+					if (sentimentData) {
 						tooltip
 							.style("opacity", 1)
 							.html(
-								`<strong>${stateId}</strong><br>Positive: ${sentiment.positive.toFixed(1)} %<br>Neutral: ${sentiment.neutral.toFixed(1)} %<br>Negative: ${sentiment.negative.toFixed(1)} %`
+								`<strong>${stateId}</strong><br>Positive: ${sentimentData.positive.toFixed(1)} %<br>Neutral: ${sentimentData.neutral.toFixed(1)} %<br>Negative: ${sentimentData.negative.toFixed(1)} %`
 							)
 							.style("left", `${event.clientX - svgBounds.left + 50}px`)
 							.style("top", `${event.clientY - svgBounds.top + 10}px`);
@@ -329,9 +338,7 @@ function UI() {
 					tooltip.style("opacity", 0);
 				});
 		});
-	}, [chartType, topic, isZoomed, sentimentByState]);
-
-	// const handleDebouncedSearch = React.useCallback(debounce(handleSearchSubmit, 300), [searchTerm]);
+	}, [chartType, topic, isZoomed, stateSentiments, sentimentMap]);
 
 	return (
 		<Flex direction={{ base: "column", md: "row" }} w="100vw" h="100vh" overflow="hidden">
@@ -355,9 +362,9 @@ function UI() {
 				<HStack position="absolute" top="1rem" left="1rem" spacing={2} width="fit-content">
 					<Input
 						placeholder="Search Your Topic!"
-						value={input}
+						value={searchTerm}
 						onChange={(e) => {
-							setInput(e.target.value);
+							setSearchTerm(e.target.value);
 							// handleDebouncedSearch(); // Runs after the user stops typing for 300ms
 						}}
 						size="sm"
@@ -380,6 +387,7 @@ function UI() {
 					<Button onClick={handleSearchSubmit} size="sm" colorScheme="blue">
 						Submit
 					</Button>
+
 					<Select
 						size="sm"
 						width="fit-content"
@@ -387,6 +395,8 @@ function UI() {
 						onChange={(e) => setChartType(e.target.value as "filled" | "bar" | "bubble")}
 					>
 						<option value="filled">Filled Color</option>
+						<option value="bar">Bar Chart</option>
+						<option value="bubble">Bubble Chart</option>
 					</Select>
 					{/* Add the search box */}
 				</HStack>
@@ -435,13 +445,15 @@ function UI() {
 						<ModalBody>
 							<AnalyticsReport
 								word={searchTerm}
-								// wordCloudData={wordCloudData}
-								wordCloudData={[]}
+								state={selectedState!}
+								year={parseInt(year)!}
 								onWordSelect={(newWord) => {
 									console.log("Word selected:", newWord); // Debug log
 									setSelectedWord(newWord);
 								}}
-								posts={posts.map((post) => post.text)}
+								posts={posts
+									.filter((post) => post.State === selectedState && post.year === parseInt(year))
+									.map((post) => post.text)}
 							/>
 						</ModalBody>
 					</ModalContent>
