@@ -1,18 +1,29 @@
-from typing import Any
+from typing import Any, List
 
 import polars as pl
 from app.api.deps import SessionDep
-from app.models import MapSentiment, Sentiment
-from app.utils import get_data, get_map_sentiment
+from app.models import Post, Sentiment
+from app.utils import get_data, get_posts
 from fastapi import APIRouter
 
 router = APIRouter()
 
 
-@router.get("/", response_model=MapSentiment)
-def get_state_word_cloud(session: SessionDep, keyword: str, year: int) -> Any:
+@router.get("/", response_model=List[Post])
+def get_sentiments_by_state(session: SessionDep, keyword: str, year: int) -> Any:
     df = get_data()
     df = df.filter(pl.col("Year") == year)
 
-    sentiment_by_state = get_map_sentiment(df, [keyword])
-    return MapSentiment(sentiment_by_state=sentiment_by_state)
+    posts = get_posts(df, [keyword])
+    return [
+        Post(
+            state=post["state"],
+            text=post["text"],
+            sentiment=Sentiment(
+                negative=post["negative"],
+                positive=post["positive"],
+                neutral=post["neutral"],
+            ),
+        )
+        for post in posts
+    ]

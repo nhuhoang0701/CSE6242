@@ -42,7 +42,7 @@ def get_posts_containing_keywords(df, keywords: List[str]) -> List[str]:
     return posts
 
 
-def get_map_sentiment(df: pl.DataFrame, keywords: List[str]) -> dict:
+def get_posts(df: pl.DataFrame, keywords: List[str]) -> dict:
     df = df.with_columns(pl.col("preprocessed_text").cast(pl.Utf8))
 
     keyword_conditions = [
@@ -55,26 +55,17 @@ def get_map_sentiment(df: pl.DataFrame, keywords: List[str]) -> dict:
 
     filtered_df = df.filter(mask)
 
-    result = filtered_df.group_by("State").agg(
+    filtered_df = filtered_df.with_columns(
         [
-            pl.col("emo_pred_pos").mean().alias("positive"),
-            pl.col("emo_pred_neu").mean().alias("neutral"),
-            pl.col("emo_pred_neg").mean().alias("negative"),
+            pl.col("State").alias("state"),
+            pl.col("emo_pred_pos").cast(pl.Float64).alias("positive"),
+            pl.col("emo_pred_neu").cast(pl.Float64).alias("neutral"),
+            pl.col("emo_pred_neg").cast(pl.Float64).alias("negative"),
+            pl.col("preprocessed_text").alias("text"),
         ]
     )
 
-    # Convert to dictionary format
-    state_sentiments = {}
-    for row in result.iter_rows(named=True):
-        state = row["State"]
-        sentiments = {
-            "positive": float(row["positive"]),
-            "neutral": float(row["neutral"]),
-            "negative": float(row["negative"]),
-        }
-        state_sentiments[state] = sentiments
-
-    return state_sentiments
+    return filtered_df.to_dicts()
 
 
 def topic_model(cleaned_docs: List[str]):

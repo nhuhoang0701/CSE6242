@@ -1,34 +1,36 @@
 from typing import Dict, List
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import SQLModel
 
 
 class StateWordCloud(SQLModel):
-    state: str = Field()
-    words: Dict = Field()
-    keyword: str = Field()
+    state: str
+    words: Dict
+    keyword: str
 
 
-class CollegeWordCloud(SQLModel):
-    college_name: str = Field()
+class CollegeWordCloud(StateWordCloud):
+    college_name: str
 
 
 class StateEmotions(SQLModel):
-    state: str = Field()
-    keyword: str = Field()
-    predicted_emotions: List[str] = (Field(),)
-    emotion_counts: Dict = Field()
+    state: str
+    keyword: str
+    predicted_emotions: List[str]
+    emotion_counts: Dict
 
 
 class CollegeEmotions(StateEmotions):
-    college_name: str = Field()
+    college_name: str
 
 
 class Sentiment(SQLModel):
-    negative: float = Field()
-    positive: float = Field()
-    neutral: float = Field()
+    negative: float
+    positive: float
+    neutral: float
 
 
-class MapSentiment(SQLModel):
-    sentiment_by_state: Dict = Field()
+class Post(SQLModel):
+    state: str
+    text: str
+    sentiment: Sentiment
