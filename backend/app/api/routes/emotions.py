@@ -18,7 +18,6 @@ router = APIRouter()
 @router.get("/state", response_model=StateWordCloud)
 def get_state_emotions(session: SessionDep, state: str, keyword: str, year: int) -> Any:
     df = get_data()
-    print(df.shape)
     df = df.filter((pl.col("State") == state.capitalize()) & (pl.col("Year") == year))
 
     posts = get_posts_containing_keywords(df, [keyword])

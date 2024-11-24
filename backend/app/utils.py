@@ -1,6 +1,5 @@
 from typing import List
 
-import pandas as pd
 import polars as pl
 import torch
 import torch.nn.functional as F
@@ -41,6 +40,41 @@ def get_posts_containing_keywords(df, keywords: List[str]) -> List[str]:
             print(f"Error processing item: {text}, Error: {e}")
 
     return posts
+
+
+def get_map_sentiment(df: pl.DataFrame, keywords: List[str]) -> dict:
+    df = df.with_columns(pl.col("preprocessed_text").cast(pl.Utf8))
+
+    keyword_conditions = [
+        pl.col("preprocessed_text").str.contains(keyword.strip().lower())
+        for keyword in keywords
+    ]
+    mask = keyword_conditions[0]
+    for condition in keyword_conditions[1:]:
+        mask = mask | condition
+
+    filtered_df = df.filter(mask)
+
+    result = filtered_df.group_by("State").agg(
+        [
+            pl.col("emo_pred_pos").mean().alias("positive"),
+            pl.col("emo_pred_neu").mean().alias("neutral"),
+            pl.col("emo_pred_neg").mean().alias("negative"),
+        ]
+    )
+
+    # Convert to dictionary format
+    state_sentiments = {}
+    for row in result.iter_rows(named=True):
+        state = row["State"]
+        sentiments = {
+            "positive": float(row["positive"]),
+            "neutral": float(row["neutral"]),
+            "negative": float(row["negative"]),
+        }
+        state_sentiments[state] = sentiments
+
+    return state_sentiments
 
 
 def topic_model(cleaned_docs: List[str]):
