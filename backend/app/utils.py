@@ -1,5 +1,7 @@
+import sqlite3
 from typing import List
 
+import pandas as pd
 import polars as pl
 import torch
 import torch.nn.functional as F
@@ -7,12 +9,20 @@ from bertopic import BERTopic
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 
-def get_data() -> pl.DataFrame:
+def get_reddit_posts_csv() -> pl.DataFrame:
     return pl.read_csv(
-        "app/filtered_df.csv",
+        "filtered_df.csv",
+        columns=[
+            "emo_pred_pos",
+            "emo_pred_neu",
+            "emo_pred_neg",
+            "College",
+            "Year",
+            "preprocessed_text",
+            "FullCollegeName",
+            "State",
+        ],
         dtypes={
-            "Unnamed: 0": pl.Int64,
-            "body": pl.Utf8,
             "emo_pred_pos": pl.Float64,
             "emo_pred_neu": pl.Float64,
             "emo_pred_neg": pl.Float64,
@@ -23,12 +33,46 @@ def get_data() -> pl.DataFrame:
             "State": pl.Utf8,
         },
         ignore_errors=True,
+    ).rename(
+        {
+            "emo_pred_pos": "positive",
+            "emo_pred_neu": "neutral",
+            "emo_pred_neg": "negative",
+            "College": "college",
+            "Year": "year",
+            "preprocessed_text": "text",
+            "FullCollegeName": "full_college_name",
+            "State": "state",
+        }
     )
 
 
-def get_posts_containing_keywords(df, keywords: List[str]) -> List[str]:
+def get_state_df(state: str, year: int) -> pl.DataFrame:
+    conn = sqlite3.connect("app/reddit_posts.db")
+    df = pd.read_sql_query(
+        "SELECT * FROM reddit_posts WHERE state = ? AND year = ?;",
+        conn,
+        params=[state, year],
+    )
+    conn.close()
+    return pl.from_pandas(df)
+
+
+def get_college_df(college: str, year: int) -> pl.DataFrame:
+    conn = sqlite3.connect("app/reddit_posts.db")
+    df = pd.read_sql_query(
+        "SELECT * FROM reddit_posts WHERE college = ? AND year = ?;",
+        conn,
+        params=[college, year],
+    )
+    conn.close()
+    return pl.from_pandas(df)
+
+
+def get_posts_containing_keywords(df: pl.DataFrame, keywords: List[str]) -> List[str]:
+
     posts = []
-    texts = df.get_column("preprocessed_text").to_list()
+    texts = df.get_column("text").to_list()
 
     for text in texts:
         try:
@@ -42,30 +86,18 @@ def get_posts_containing_keywords(df, keywords: List[str]) -> List[str]:
     return posts
 
 
-def get_posts(df: pl.DataFrame, keywords: List[str]) -> dict:
-    df = df.with_columns(pl.col("preprocessed_text").cast(pl.Utf8))
+def get_posts_df(df: pl.DataFrame, keywords: List[str]) -> pl.DataFrame:
+    df = df.with_columns(pl.col("text").cast(pl.Utf8))
 
     keyword_conditions = [
-        pl.col("preprocessed_text").str.contains(keyword.strip().lower())
-        for keyword in keywords
+        pl.col("text").str.contains(keyword.strip().lower()) for keyword in keywords
     ]
     mask = keyword_conditions[0]
     for condition in keyword_conditions[1:]:
         mask = mask | condition
 
     filtered_df = df.filter(mask)
-
-    filtered_df = filtered_df.with_columns(
-        [
-            pl.col("State").alias("state"),
-            pl.col("emo_pred_pos").cast(pl.Float64).alias("positive"),
-            pl.col("emo_pred_neu").cast(pl.Float64).alias("neutral"),
-            pl.col("emo_pred_neg").cast(pl.Float64).alias("negative"),
-            pl.col("preprocessed_text").alias("text"),
-        ]
-    )
-
-    return filtered_df.to_dicts()
+    return filtered_df
 
 
 def topic_model(cleaned_docs: List[str]):
@@ -108,3 +140,35 @@ def predict_emotion(text: str):
     probs = F.softmax(logits, dim=-1)
     predicted_class = torch.argmax(probs, dim=1).item()
     return predicted_class
+
+
+if __name__ == "__main__":
+    create_table_sql = """
+    CREATE TABLE IF NOT EXISTS reddit_posts (
+        positive REAL,
+        neutral REAL,
+        negative REAL,
+        college TEXT,
+        year REAL,
+        text TEXT,
+        full_college_name TEXT,
+        state TEXT
+    );
+    """
+
+    import sqlite3
+
+    df = get_reddit_posts_csv()
+    print(df.head())
+    df = df.to_pandas()
+    conn = sqlite3.connect("reddit_posts.db")
+    conn.execute(create_table_sql)
+
+    df.to_sql("reddit_posts", conn, if_exists="replace", index=True)
+
+    import pandas as pd
+
+    df = pd.read_sql_query("SELECT * FROM reddit_posts;", conn)
+    print(df.head())
+
+    conn.close()

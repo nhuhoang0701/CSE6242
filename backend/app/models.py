@@ -32,5 +32,5 @@ class Sentiment(SQLModel):
 
 class Post(SQLModel):
     state: str
-    text: str
+    # text: str
     sentiment: Sentiment

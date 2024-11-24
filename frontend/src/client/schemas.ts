@@ -1,9 +1,23 @@
 export const $CollegeWordCloud = {
   properties: {
+    state: {
+      type: "string",
+      isRequired: true,
+    },
+    words: {
+      type: "dictionary",
+      contains: {
+        properties: {},
+      },
+      isRequired: true,
+    },
+    keyword: {
+      type: "string",
+      isRequired: true,
+    },
     college_name: {
       type: "string",
       isRequired: true,
-      maxLength: 200,
     },
   },
 } as const
@@ -19,12 +33,28 @@ export const $HTTPValidationError = {
   },
 } as const
 
+export const $Sentiment = {
+  properties: {
+    negative: {
+      type: "number",
+      isRequired: true,
+    },
+    positive: {
+      type: "number",
+      isRequired: true,
+    },
+    neutral: {
+      type: "number",
+      isRequired: true,
+    },
+  },
+} as const
+
 export const $StateWordCloud = {
   properties: {
     state: {
       type: "string",
       isRequired: true,
-      maxLength: 100,
     },
     words: {
       type: "dictionary",
@@ -36,7 +66,6 @@ export const $StateWordCloud = {
     keyword: {
       type: "string",
       isRequired: true,
-      maxLength: 100,
     },
   },
 } as const

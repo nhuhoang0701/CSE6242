@@ -5,8 +5,9 @@ import polars as pl
 from app.api.deps import SessionDep
 from app.models import CollegeEmotions, CollegeWordCloud, StateEmotions, StateWordCloud
 from app.utils import (
-    get_data,
+    get_college_df,
     get_posts_containing_keywords,
+    get_state_df,
     predict_emotion,
     topic_model,
 )
@@ -17,9 +18,7 @@ router = APIRouter()
 
 @router.get("/state", response_model=StateWordCloud)
 def get_state_emotions(session: SessionDep, state: str, keyword: str, year: int) -> Any:
-    df = get_data()
-    df = df.filter((pl.col("State") == state.capitalize()) & (pl.col("Year") == year))
-
+    df = get_state_df(state, year)
     posts = get_posts_containing_keywords(df, [keyword])
 
     answers = []
@@ -54,8 +53,7 @@ def get_state_emotions(session: SessionDep, state: str, keyword: str, year: int)
 def get_college_word_cloud(
     session: SessionDep, college_name: str, keyword: str, year: int
 ) -> Any:
-    df = get_data()
-    df = df[(df["College"] == college_name) | (df["FullCollegeName"] == college_name)]
+    df = get_college_df(college_name, year)
     if df.empty:
         return CollegeWordCloud(
             state="", college_name=college_name, words={}, keyword=keyword

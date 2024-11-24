@@ -1,29 +1,82 @@
-from typing import Any, List
+from typing import Any, Dict
 
 import polars as pl
 from app.api.deps import SessionDep
 from app.models import Post, Sentiment
-from app.utils import get_data, get_posts
+from app.utils import get_posts_df, get_state_df
 from fastapi import APIRouter
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[Post])
-def get_sentiments_by_state(session: SessionDep, keyword: str, year: int) -> Any:
-    df = get_data()
-    df = df.filter(pl.col("Year") == year)
+@router.get("/", response_model=Dict[str, Sentiment])
+def get_sentiments(session: SessionDep, keyword: str, year: int) -> Any:
 
-    posts = get_posts(df, [keyword])
-    return [
-        Post(
-            state=post["state"],
-            text=post["text"],
-            sentiment=Sentiment(
-                negative=post["negative"],
-                positive=post["positive"],
-                neutral=post["neutral"],
-            ),
-        )
-        for post in posts
+    states = [
+        "Alabama",
+        "Alaska",
+        "Arizona",
+        "Arkansas",
+        "California",
+        "Colorado",
+        "Connecticut",
+        "Delaware",
+        "Florida",
+        "Georgia",
+        "Hawaii",
+        "Idaho",
+        "Illinois",
+        "Indiana",
+        "Iowa",
+        "Kansas",
+        "Kentucky",
+        "Louisiana",
+        "Maine",
+        "Maryland",
+        "Massachusetts",
+        "Michigan",
+        "Minnesota",
+        "Mississippi",
+        "Missouri",
+        "Montana",
+        "Nebraska",
+        "Nevada",
+        "New Hampshire",
+        "New Jersey",
+        "New Mexico",
+        "New York",
+        "North Carolina",
+        "North Dakota",
+        "Ohio",
+        "Oklahoma",
+        "Oregon",
+        "Pennsylvania",
+        "Rhode Island",
+        "South Carolina",
+        "South Dakota",
+        "Tennessee",
+        "Texas",
+        "Utah",
+        "Vermont",
+        "Virginia",
+        "Washington",
+        "West Virginia",
+        "Wisconsin",
+        "Wyoming",
     ]
+
+    sentiment_by_state = {}
+
+    for state in states:
+        state_df = get_state_df(state, year)
+        posts_df = get_posts_df(state_df, [keyword])
+        if posts_df.is_empty():
+            sentiment_by_state[state] = Sentiment(positive=0, neutral=0, negative=0)
+        else:
+            sentiment_by_state[state] = Sentiment(
+                positive=posts_df["positive"].mean(),
+                neutral=posts_df["neutral"].mean(),
+                negative=posts_df["negative"].mean(),
+            )
+
+    return sentiment_by_state

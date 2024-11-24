@@ -2,7 +2,7 @@ import type { CancelablePromise } from "./core/CancelablePromise"
 import { OpenAPI } from "./core/OpenAPI"
 import { request as __request } from "./core/request"
 
-import type { CollegeWordCloud, StateWordCloud } from "./models"
+import type { CollegeWordCloud, StateWordCloud, Sentiment } from "./models"
 
 export type TDataGetStateWordCloud = {
   keyword: string
@@ -112,6 +112,35 @@ export class EmotionsService {
       url: "/api/v1/emotions/college",
       query: {
         college_name: collegeName,
+        keyword,
+        year,
+      },
+      errors: {
+        422: `Validation Error`,
+      },
+    })
+  }
+}
+
+export type TDataGetSentiments = {
+  keyword: string
+  year: number
+}
+
+export class SentimentsService {
+  /**
+   * Get Sentiments
+   * @returns Sentiment Successful Response
+   * @throws ApiError
+   */
+  public static getSentiments(
+    data: TDataGetSentiments,
+  ): CancelablePromise<Record<string, Sentiment>> {
+    const { keyword, year } = data
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/sentiments/",
+      query: {
         keyword,
         year,
       },
