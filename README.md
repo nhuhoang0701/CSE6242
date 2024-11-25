@@ -6,7 +6,7 @@ Welcome to our CSE 6242 project!
 
 You can explore our visulization components for the project through these files:
 
-- frontend/src/routes/AnalyticsReport.tsx: This code defines the AnalyticsReport component, which visualizes keyword trends with bar and pie charts, a word cloud, and a paginated Reddit post table, using data fetched via React Query.
+- `/frontend/src/routes/AnalyticsReport.tsx/`: This code defines the AnalyticsReport component, which visualizes keyword trends with bar and pie charts, a word cloud, and a paginated Reddit post table, using data fetched via React Query.
 - frontend/src/routes/CommonWordsBarChart.tsx
 - frontend/src/routes/EmotionPieChart.tsx
 - frontend/src/routes/WordCloud.tsx
