@@ -21,7 +21,7 @@ You can explore our visulization components for the project through these files:
 We maintain two copies of the dataset:
 
 - Backend: Primary data source, put this [file](https://drive.google.com/file/d/1VXZiF0uowT5Pjp5XTi8BpA_GYAlpGiOX/view) under `./backend/app`
-- Frontend: Cache for quick post retrieval, reducing API calls. Put [this folder](https://drive.google.com/drive/folders/1pK1mY4Aw6qfTwROUiOu9P07D0omYgOwk) under `./frontend`
+- Frontend: Cache for quick post retrieval, reducing API calls. Download the dataset from [this folder](https://drive.google.com/drive/folders/1pK1mY4Aw6qfTwROUiOu9P07D0omYgOwk) and replace them with `data_2019 ~ data_2022` under `./frontend/dataset`
 
 ## Frontend
 
