@@ -21,9 +21,9 @@ def get_state_word_cloud(
     df = get_state_df(state, year)
 
     posts = get_posts_containing_keywords(df, [keyword])
-    prob_by_word = topic_model(posts)
+    freq_by_word = topic_model(posts)
 
-    return StateWordCloud(state=state, words=prob_by_word, keyword=keyword)
+    return StateWordCloud(state=state, words=freq_by_word, keyword=keyword)
 
 
 @router.get("/college", response_model=CollegeWordCloud)

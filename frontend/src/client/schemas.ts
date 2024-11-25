@@ -50,6 +50,33 @@ export const $Sentiment = {
   },
 } as const
 
+export const $StateEmotions = {
+  properties: {
+    state: {
+      type: "string",
+      isRequired: true,
+    },
+    keyword: {
+      type: "string",
+      isRequired: true,
+    },
+    predicted_emotions: {
+      type: "array",
+      contains: {
+        type: "string",
+      },
+      isRequired: true,
+    },
+    emotion_counts: {
+      type: "dictionary",
+      contains: {
+        properties: {},
+      },
+      isRequired: true,
+    },
+  },
+} as const
+
 export const $StateWordCloud = {
   properties: {
     state: {

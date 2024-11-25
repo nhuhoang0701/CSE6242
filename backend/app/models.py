@@ -17,7 +17,7 @@ class StateEmotions(SQLModel):
     state: str
     keyword: str
     predicted_emotions: List[str]
-    emotion_counts: Dict
+    emotion_counts: Dict[str, int]
 
 
 class CollegeEmotions(StateEmotions):

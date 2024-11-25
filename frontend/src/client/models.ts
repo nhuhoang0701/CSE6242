@@ -15,6 +15,13 @@ export type Sentiment = {
   neutral: number
 }
 
+export type StateEmotions = {
+  state: string
+  keyword: string
+  predicted_emotions: Array<string>
+  emotion_counts: Record<string, unknown>
+}
+
 export type StateWordCloud = {
   state: string
   words: Record<string, unknown>

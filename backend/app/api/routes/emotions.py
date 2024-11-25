@@ -12,11 +12,12 @@ from app.utils import (
     topic_model,
 )
 from fastapi import APIRouter
+from tqdm import tqdm
 
 router = APIRouter()
 
 
-@router.get("/state", response_model=StateWordCloud)
+@router.get("/state", response_model=StateEmotions)
 def get_state_emotions(session: SessionDep, state: str, keyword: str, year: int) -> Any:
     df = get_state_df(state, year)
     posts = get_posts_containing_keywords(df, [keyword])
@@ -36,7 +37,8 @@ def get_state_emotions(session: SessionDep, state: str, keyword: str, year: int)
         9: "surprise",
         10: "trust",
     }
-    for text in posts:
+
+    for text in tqdm(posts, desc="Processing Posts"):
         e = predict_emotion(text)
         answers.append(emotions[e])
         emotion_counts[emotions[e]] += 1
