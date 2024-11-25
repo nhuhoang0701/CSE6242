@@ -1,10 +1,24 @@
-## Description
-This repo serves as the website for analyzing different topics through Reddit data from 128 U.S. universities (2019-2022). it Uses topic modeling and emotion classification to extract insights from student discussions with lots of interactive visualizations.
+# CSE 6242 Project
 
-Key features:
-- Reddit data analysis from university subreddits
-- Topic modeling & emotion classification
-- Interactive sentiment visualization
+## Description
+
+Welcome to our CSE 6242 project!
+Here's our github repository: https://github.com/nhuhoang0701/CSE6242
+
+You can explore our visualization components for the project through these files:
+
+- `frontend/src/routes/AnalyticsReport.tsx`: This file defines the `AnalyticsReport`, `EmotionPieChart`, `WordFrequencyChart`, `PaginatedTable`, and `WordCloud` component
+  - The `AnalyticsReport` component visualizes keyword trends with bar and pie charts, a word cloud, and an original Reddit post table.
+  - The `WordFrequencyChart` component, counts topic frequencies and visualizes the top 5 most common topics as a horizontal bar chart.
+  - The `EmotionPieChart` component calculates the distribution of emotions, and visualizes them as a pie chart, alongside a legend displaying emotion counts and their corresponding colors.
+  - The `PaginatedTable` component shows a paginated table of Reddit posts containing the searched keywords
+  - The `WordCloud` component allows users to see relevant words to their input at a glance. It has been integrated into AnalyticsReport.tsx.
+  
+- `frontend/src/components/ui.tsx`: This file defines the `UI` component, a feature-rich visualization tool for exploring Reddit sentiment data across U.S. states, integrating D3.js to create an interactive map with zoom and tooltip functionality, a customizable legend, and Chakra UI for layout and modals, while supporting dynamic keyword searches, year selection, and sentiment analysis visualization through a connected analytics report.
+- `backend/app/api/routes`: This folder contains code for all APIs, responsible for getting emotions, and keywords for state and college levels.
+- `backend/app/main.py`: This is the entry FastAPI point to run the server.
+- `backend/app/models.py`: This file contains the Pydantic models used by FastAPI.
+- `backend/app/utils.py`: This file contains all utility functions, including filtering posts by keywords, inferring topics using BERT, and predicting emotions. 
 
 ## Installation
 ### Dataset Preparation
@@ -15,37 +29,29 @@ We maintain two copies of the dataset:
 - Frontend: Cache for quick post retrieval, reducing API calls. Put [this folder](https://drive.google.com/drive/folders/1pK1mY4Aw6qfTwROUiOu9P07D0omYgOwk) under `./frontend`
 
 ### Frontend
-Before you begin, ensure that you have either the Node Version Manager (nvm) or Fast Node Manager (fnm) installed on your system.
+Before you begin, ensure that you have Fast Node Manager (fnm) on your system.
 
-- To install fnm follow the [official fnm guide](https://github.com/Schniz/fnm#installation). If you prefer nvm, you can install it using the [official nvm guide](https://github.com/nvm-sh/nvm#installing-and-updating).
+- To install fnm follow the [official fnm guide](https://github.com/Schniz/fnm#installation).
 
-- After installing either nvm or fnm, proceed to the `frontend` directory:
+- After installing fnm, go to the `frontend` directory:
 
 ```bash
 cd frontend
 ```
 
-- If the Node.js version specified in the `.nvmrc` file isn't installed on your system, you can install it using the appropriate command:
+- Install NodeJS using the command:
 
 ```bash
-# If using fnm
 fnm install
-
-# If using nvm
-nvm install
 ```
 
-- Once the installation is complete, switch to the installed version:
+- Once the installation is done, use the installed version:
 
 ```bash
-# If using fnm
 fnm use
-
-# If using nvm
-nvm use
 ```
 
-- Within the `frontend` directory, install the necessary NPM packages:
+- Within the `frontend` directory, install all NPM packages:
 
 ```bash
 npm install
@@ -54,7 +60,7 @@ npm install
 
 #### Requirements
 
-- [Python](https://www.python.org/) for the backend. **IMPORTANT: Can only use python 3.6 - 3.9 due to a dependency conflict in BERT!**
+- [Python](https://www.python.org/) for the backend. **IMPORTANT: Can only use Python 3.6 - 3.9 due to a dependency conflict in BERT!**
 - [uv](https://docs.astral.sh/uv/) for Python package and environment management.
 
 #### Setup
@@ -90,13 +96,13 @@ python3 utils.py
 
 ### Frontend
 
-Start the live server with the following `npm` script:
+Start the live server with the following `npm` command:
 
 ```bash
 npm run dev
 ```
 
-Then open your browser at http://localhost:5173/ui.
+Then open your browser at http://localhost:5173/ui
 
 ### Backend
 
@@ -105,8 +111,6 @@ Go back to `backend` and use the `fastapi run --reload` command to run the debug
 ```console
 $ fastapi run --reload
 ```
-
-and then hit enter. That runs the live reloading server that auto reloads when it detects code changes.
 
 You can then check the interactive Swagger docs at http://localhost:8000/docs
 
