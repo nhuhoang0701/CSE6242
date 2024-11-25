@@ -1,4 +1,10 @@
 ## Description
+This project serves as the website for analyzing different topics through Reddit data from 128 U.S. universities (2019-2022). Uses topic modeling and emotion classification to extract insights from student discussions with lots of interactive visualizations.
+
+Key features:
+- Reddit data analysis from university subreddits
+- Topic modeling & emotion classification
+- Interactive sentiment visualization
 
 ## Installation
 ### Dataset Preparation
