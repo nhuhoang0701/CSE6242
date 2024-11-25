@@ -3,6 +3,7 @@
 ## Description
 
 Welcome to our CSE 6242 project!
+Here's our github repository: https://github.com/nhuhoang0701/CSE6242/tree/main
 
 You can explore our visulization components for the project through these files:
 
