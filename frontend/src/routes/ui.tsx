@@ -167,8 +167,8 @@ function UI() {
 
 		const { positive, neutral, negative } = sentimentData;
 
-		 // Define thresholds and corresponding colors
-		 if (negative > 60) {
+		// Define thresholds and corresponding colors
+		if (negative > 60) {
 			return "red"; // Very Negative
 		} else if (negative > 40 && negative <= 60) {
 			return "#E96100"; // Negative
@@ -440,7 +440,9 @@ function UI() {
 				>
 					<ModalOverlay />
 					<ModalContent w="75vw" h="90vh" maxW="75vw">
-						<ModalHeader>{selectedState}</ModalHeader>
+						<ModalHeader>
+							Analytics report for state "{selectedState}" on keyword "{searchTerm}" in {year}
+						</ModalHeader>
 						<ModalCloseButton />
 						<ModalBody>
 							<AnalyticsReport

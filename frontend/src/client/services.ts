@@ -2,7 +2,12 @@ import type { CancelablePromise } from "./core/CancelablePromise"
 import { OpenAPI } from "./core/OpenAPI"
 import { request as __request } from "./core/request"
 
-import type { CollegeWordCloud, StateWordCloud, Sentiment } from "./models"
+import type {
+  CollegeWordCloud,
+  StateWordCloud,
+  StateEmotions,
+  Sentiment,
+} from "./models"
 
 export type TDataGetStateWordCloud = {
   keyword: string
@@ -77,12 +82,12 @@ export type TDataGetCollegeWordCloud = {
 export class EmotionsService {
   /**
    * Get State Emotions
-   * @returns StateWordCloud Successful Response
+   * @returns StateEmotions Successful Response
    * @throws ApiError
    */
   public static getStateEmotions(
     data: TDataGetStateEmotions,
-  ): CancelablePromise<StateWordCloud> {
+  ): CancelablePromise<StateEmotions> {
     const { keyword, state, year } = data
     return __request(OpenAPI, {
       method: "GET",

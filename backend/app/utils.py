@@ -1,4 +1,5 @@
 import sqlite3
+from collections import defaultdict
 from typing import List
 
 import pandas as pd
@@ -108,15 +109,15 @@ def topic_model(cleaned_docs: List[str]):
     topic_model = BERTopic(nr_topics=10)
     topics, _ = topic_model.fit_transform(cleaned_docs)
 
-    prob_by_word = {}
+    freq_by_word = defaultdict(int)
 
     for topic in set(topics):
         if topic != -1:  # Exclude the outlier topic
             topic_words = topic_model.get_topic(topic)
-            for word, prob in topic_words:
-                prob_by_word[word] = float(prob)
+            for word, _ in topic_words:
+                freq_by_word[word] += 1
 
-    return prob_by_word
+    return freq_by_word
 
 
 def predict_emotion(text: str):
