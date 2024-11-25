@@ -103,3 +103,7 @@ $ fastapi run --reload
 and then hit enter. That runs the live reloading server that auto reloads when it detects code changes.
 
 You can then check the interactive Swagger docs at http://localhost:8000/docs
+
+## Credit
+
+This project structure is based on the [FastAPI template](https://github.com/fastapi/full-stack-fastapi-template) by [Tiangolo](https://github.com/tiangolo).
