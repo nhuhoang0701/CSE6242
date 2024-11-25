@@ -43,3 +43,5 @@ $ fastapi run --reload
 ```
 
 and then hit enter. That runs the live reloading server that auto reloads when it detects code changes.
+
+You can then check the interactive Swagger docs at http://localhost:8000/docs
