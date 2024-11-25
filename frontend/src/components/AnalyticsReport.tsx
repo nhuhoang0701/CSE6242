@@ -55,8 +55,11 @@ function WordFrequencyChart({ words }: { words: Record<string, number> }) {
 				data={data}
 				width={400}
 				height={400}
-				margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+				margin={{ top: 50, right: 20, bottom: 20, left: 20 }}
 			>
+				<text x="50%" y="5%" textAnchor="middle" dominantBaseline="middle" fontSize="1.5em">
+					Top 5 Most Common Topics
+				</text>
 				<CartesianGrid strokeDasharray="3 3" />
 				<XAxis dataKey="word" />
 				<YAxis />
@@ -79,13 +82,16 @@ const EmotionsPieChart = ({ emotionsCount }: { emotionsCount: Record<string, num
 	return (
 		<Box w="100%" h="100%" display="flex" justifyContent="center">
 			<PieChart width={600} height={400}>
+				<text x="50%" y="5%" textAnchor="middle" dominantBaseline="middle" fontSize="1.5em">
+					Emotions Distribution
+				</text>
 				<Pie
 					data={data}
 					cx="50%"
 					cy="50%"
 					labelLine={false}
 					label={({ name: emotion, percent: count }) => `${emotion} ${(count * 100).toFixed(0)}%`}
-					outerRadius={120}
+					outerRadius={100}
 					fill="#8884d8"
 					dataKey="value"
 				>
@@ -148,7 +154,7 @@ function PaginatedTable({ posts }: { posts: string[] }) {
 				</TableContainer>
 			</Box>
 
-			<HStack justify="center" mt={1}>
+			<HStack justify="center" mt={4}>
 				<Button
 					size="sm"
 					onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
@@ -241,12 +247,11 @@ function AnalyticsReport({ word, state, year, onWordSelect, posts = [] }: Analyt
 			{/* Third Row */}
 			<Box flex="2" minH="200px" borderRadius="md" border={"1px solid rgba(0, 0, 0, 0.1)"}>
 				{word && (
-					<VStack spacing={4} align="stretch" overflow="hidden">
+					<VStack spacing={4} align="stretch" overflow="hidden" paddingLeft={2}>
 						<Box flexShrink={0}>
 							<Text fontSize="xl" fontWeight="bold">
-								Original Posts containing "{word}"
+								{filteredPostTexts.length} Reddit posts containing "{word}"
 							</Text>
-							<Text mb={4}>Number of Posts: {filteredPostTexts.length}</Text>
 						</Box>
 
 						<Box flex="1" overflow="auto">

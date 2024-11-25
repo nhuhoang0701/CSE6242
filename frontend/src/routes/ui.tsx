@@ -440,7 +440,7 @@ function UI() {
 				>
 					<ModalOverlay />
 					<ModalContent w="75vw" h="90vh" maxW="75vw">
-						<ModalHeader>
+						<ModalHeader fontSize={"2xl"} fontWeight={"bold"}>
 							Analytics report for state "{selectedState}" on keyword "{searchTerm}" in {year}
 						</ModalHeader>
 						<ModalCloseButton />
