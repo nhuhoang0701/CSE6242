@@ -5,7 +5,7 @@
 Welcome to our CSE 6242 project!
 Here's our github repository: https://github.com/nhuhoang0701/CSE6242/tree/main
 
-You can explore our visulization components for the project through these files:
+You can explore our visualization components for the project through these files:
 
 - `frontend/src/routes/AnalyticsReport.tsx`: This file defines the `AnalyticsReport`, `EmotionPieChart`, `WordFrequencyChart`, `PaginatedTable`, and `WordCloud` component
   - The `AnalyticsReport` component visualizes keyword trends with bar and pie charts, a word cloud, and an original Reddit post table.
@@ -14,8 +14,8 @@ You can explore our visulization components for the project through these files:
   - The `PaginatedTable` component shows a paginated table of Reddit posts containing the searched keywords
   - The `WordCloud` component allows users to see relevant words to their input at a glance. It has been integrated into AnalyticsReport.tsx.
   
-- `frontend/src/components/ui.tsx` : This file defines the `UI` component, a feature-rich visualization tool for exploring Reddit sentiment data across U.S. states, integrating D3.js to create an interactive map with zoom and tooltip functionality, a customizable legend, and Chakra UI for layout and modals, while supporting dynamic keyword searches, year selection, and sentiment analysis visualization through a connected analytics report.
-- `backend/app/api/routes`: This folder contains code for all APIs, responsible for getting emotions, and keywords for state and college level.
+- `frontend/src/components/ui.tsx`: This file defines the `UI` component, a feature-rich visualization tool for exploring Reddit sentiment data across U.S. states, integrating D3.js to create an interactive map with zoom and tooltip functionality, a customizable legend, and Chakra UI for layout and modals, while supporting dynamic keyword searches, year selection, and sentiment analysis visualization through a connected analytics report.
+- `backend/app/api/routes`: This folder contains code for all APIs, responsible for getting emotions, and keywords for state and college levels.
 - `backend/app/main.py`: This is the entry FastAPI point to run the server.
 - `backend/app/models.py`: This file contains the Pydantic models used by FastAPI.
 - `backend/app/utils.py`: This file contains all utility functions, including filtering posts by keywords, inferring topics using BERT, and predicting emotions. 
