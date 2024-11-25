@@ -26,7 +26,7 @@ You can explore our visualization components for the project through these files
 We maintain two copies of the dataset:
 
 - Backend: Primary data source, put this [file](https://drive.google.com/file/d/1VXZiF0uowT5Pjp5XTi8BpA_GYAlpGiOX/view) under `./backend/app`
-- Frontend: Cache for quick post retrieval, reducing API calls. Put [this folder](https://drive.google.com/drive/folders/1pK1mY4Aw6qfTwROUiOu9P07D0omYgOwk) under `./frontend`
+- Frontend: Cache for quick post retrieval, reducing API calls. Download dataset from [this folder](https://drive.google.com/drive/folders/1pK1mY4Aw6qfTwROUiOu9P07D0omYgOwk) and replace `data_2019~2022` with downloaded files under `./frontend/dataset`
 
 ### Frontend
 Before you begin, ensure that you have Fast Node Manager (fnm) on your system.
